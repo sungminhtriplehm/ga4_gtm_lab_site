@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <title>Lab Shop | Thank you</title>
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="assets/style.css" />
+  <script>
+    // dataLayer는 GTM이 로드되기 전에 먼저 선언하는 것이 권장됩니다.
+    window.dataLayer = window.dataLayer || [];
+  </script>
+
+  <!-- GTM HEAD SNIPPET: Google Tag Manager에서 복사한 <script>...</script>를 여기 붙여넣으세요 -->
+
+</head>
+<body>
+
+  <!-- GTM BODY SNIPPET: Google Tag Manager에서 복사한 <noscript>...</noscript>를 여기 붙여넣으세요 -->
+
+<header class="container">
+  <a class="brand" href="index.html" aria-label="Home">
+    <div class="logo" aria-hidden="true"></div>
+    <div>
+      <h1>GTM + GA4 전자상거래 실습 미니샵</h1>
+      <div class="small">정적 페이지( GitHub Pages ) + dataLayer 기반 이벤트</div>
+    </div>
+  </a>
+
+  <nav class="nav">
+    <div class="pill">
+      <label style="display:flex; align-items:center; gap:8px;">
+        <input type="checkbox" data-member-toggle />
+        <span data-member-label>회원가 OFF</span>
+      </label>
+    </div>
+
+    <a class="pill" href="cart.html">
+      🛒 장바구니
+      <span class="badge" data-cart-count>0</span>
+    </a>
+  </nav>
+</header>
+
+<main class="container">
+  <section class="panel" id="panel">
+    <h2 style="margin:0 0 8px;">구매 완료 🎉</h2>
+    <div class="small">이 페이지 로드 시 (최초 1회) <code class="inline">purchase</code> 이벤트가 전송됩니다.</div>
+
+    <div id="msg" style="margin-top:10px;"></div>
+
+    <div class="row" style="margin-top:12px;">
+      <a class="btn" href="index.html">홈으로</a>
+      <a class="btn secondary" href="cart.html">장바구니 보기</a>
+    </div>
+
+    <div class="small" style="margin-top:10px;">
+      ⚠️ 새로고침하면 구매 완료 페이지가 다시 로드됩니다. 중복 구매 이벤트를 막기 위해
+      <code class="inline">transaction_id</code>를 사용하고, 로컬에 "전송 완료" 체크를 저장합니다.
+    </div>
+  </section>
+</main>
+
+<footer class="container">
+  <div>
+    이 페이지는 GA4/GTM 실습용 가짜 스토어입니다. 실제 결제/회원/개인정보 수집은 없습니다.
+  </div>
+  <div class="small">
+    팁) 브라우저 광고 차단 확장프로그램이 GA/GTM 요청을 막을 수 있어요. 테스트 중엔 잠시 꺼보는 게 좋습니다.
+  </div>
+</footer>
+
+<script src="assets/shop.js"></script>
+<script>
+  function render() {
+    setMemberToggleUI();
+    updateCartBadge();
+
+    const orderRaw = sessionStorage.getItem(STORAGE.ORDER);
+    const msg = document.getElementById("msg");
+
+    if (!orderRaw) {
+      msg.innerHTML = "<div class='small'>주문 정보를 찾을 수 없습니다. (체크아웃 페이지에서 다시 진행해보세요)</div>";
+      return;
+    }
+
+    let order;
+    try { order = JSON.parse(orderRaw); } catch(e) { order = null; }
+    if (!order || !order.transaction_id) {
+      msg.innerHTML = "<div class='small'>주문 정보 형식이 올바르지 않습니다.</div>";
+      return;
+    }
+
+    msg.innerHTML = `
+      <div class="kpi">
+        <div class="box"><div class="label">transaction_id</div><div class="value"><code class="inline">${order.transaction_id}</code></div></div>
+        <div class="box"><div class="label">value</div><div class="value">${formatKRW(order.value)}원</div></div>
+        <div class="box"><div class="label">payment_type</div><div class="value">${order.payment_type}</div></div>
+      </div>
+      <div class="small" style="margin-top:10px;">구매 이벤트가 DebugView/Realtime에 들어오는지 확인해보세요.</div>
+    `;
+
+    // purchase (한 번만)
+    if (!hasPurchaseSent(order.transaction_id)) {
+      pushEcomEvent("purchase", {
+        transaction_id: order.transaction_id,
+        currency: order.currency,
+        value: order.value,
+        tax: order.tax,
+        shipping: order.shipping,
+        ecommerce: { items: order.items }
+      });
+
+      markPurchaseSent(order.transaction_id);
+
+      // 실제 사이트라면 구매 완료 이후 장바구니 비우는 로직이 일반적
+      clearCart();
+    }
+  }
+
+  render();
+</script>
+</body>
+</html>

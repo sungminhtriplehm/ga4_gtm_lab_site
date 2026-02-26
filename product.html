@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <title>Lab Shop | Product</title>
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="assets/style.css" />
+  <script>
+    // dataLayer는 GTM이 로드되기 전에 먼저 선언하는 것이 권장됩니다.
+    window.dataLayer = window.dataLayer || [];
+  </script>
+
+  <!-- GTM HEAD SNIPPET: Google Tag Manager에서 복사한 <script>...</script>를 여기 붙여넣으세요 -->
+
+</head>
+<body>
+
+  <!-- GTM BODY SNIPPET: Google Tag Manager에서 복사한 <noscript>...</noscript>를 여기 붙여넣으세요 -->
+
+<header class="container">
+  <a class="brand" href="index.html" aria-label="Home">
+    <div class="logo" aria-hidden="true"></div>
+    <div>
+      <h1>GTM + GA4 전자상거래 실습 미니샵</h1>
+      <div class="small">정적 페이지( GitHub Pages ) + dataLayer 기반 이벤트</div>
+    </div>
+  </a>
+
+  <nav class="nav">
+    <div class="pill">
+      <label style="display:flex; align-items:center; gap:8px;">
+        <input type="checkbox" data-member-toggle />
+        <span data-member-label>회원가 OFF</span>
+      </label>
+    </div>
+
+    <a class="pill" href="cart.html">
+      🛒 장바구니
+      <span class="badge" data-cart-count>0</span>
+    </a>
+  </nav>
+</header>
+
+<main class="container">
+  <section class="panel" id="productPanel">
+    <h2 id="pName" style="margin:0 0 8px;">상품 상세</h2>
+    <div class="meta" id="pMeta"></div>
+    <div class="price" style="margin-top:10px;">
+      <strong id="pPrice">-</strong>
+      <span id="pDiscount">-</span>
+    </div>
+
+    <div class="row" style="margin-top:12px;">
+      <div style="min-width:140px;">
+        <label>수량</label>
+        <input type="number" id="qty" min="1" value="1" />
+      </div>
+      <div style="flex:1; min-width:200px;">
+        <label>동작</label>
+        <div class="row" style="margin-top:6px;">
+          <button class="btn" id="btnAdd">장바구니 담기</button>
+          <a class="btn secondary" href="cart.html">장바구니로 이동</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="small" style="margin-top:10px;">
+      이 페이지 로드 시 <code class="inline">view_item</code>가 전송됩니다.
+      메인에서 넘어온 경우(쿼리스트링 포함) <code class="inline">select_item</code>도 함께 전송됩니다.
+    </div>
+  </section>
+
+  <section class="panel" style="margin-top:12px;">
+    <h3 style="margin:0 0 8px;">학습 포인트</h3>
+    <ul class="small">
+      <li>메인 페이지의 <code class="inline">view_item_list</code> → 상세 페이지의 <code class="inline">select_item</code>/<code class="inline">view_item</code> 흐름을 GA4 경로/퍼널 탐색에서 확인</li>
+      <li>회원가(할인) 트래킹: item의 <code class="inline">price</code>, <code class="inline">discount</code>, <code class="inline">item_variant</code>, 그리고 커스텀 <code class="inline">price_type</code> 확인</li>
+    </ul>
+  </section>
+</main>
+
+<footer class="container">
+  <div>
+    이 페이지는 GA4/GTM 실습용 가짜 스토어입니다. 실제 결제/회원/개인정보 수집은 없습니다.
+  </div>
+  <div class="small">
+    팁) 브라우저 광고 차단 확장프로그램이 GA/GTM 요청을 막을 수 있어요. 테스트 중엔 잠시 꺼보는 게 좋습니다.
+  </div>
+</footer>
+
+<script src="assets/shop.js"></script>
+<script>
+  function getParam(name) {
+    return new URLSearchParams(location.search).get(name);
+  }
+
+  function renderProduct() {
+    setMemberToggleUI();
+    updateCartBadge();
+
+    const sku = getParam("sku") || "SKU_001";
+    const list_id = getParam("list_id");
+    const list_name = getParam("list_name");
+    const index = Number(getParam("index"));
+
+    const product = getProduct(sku);
+    if (!product) {
+      document.getElementById("productPanel").innerHTML = "<h2>상품을 찾을 수 없습니다.</h2><a class='btn' href='index.html'>홈으로</a>";
+      return;
+    }
+
+    const { item, price_type } = buildItem(product, 1, {
+      item_list_id: list_id || undefined,
+      item_list_name: list_name || undefined,
+      index: Number.isFinite(index) ? index : undefined
+    });
+
+    document.getElementById("pName").textContent = product.item_name;
+    document.getElementById("pMeta").innerHTML = `
+      <span>카테고리: ${product.item_category}</span>
+      <span>SKU: <code class="inline">${product.item_id}</code></span>
+      <span>price_type: <code class="inline">${price_type}</code></span>
+      <span>item_variant: <code class="inline">${item.item_variant}</code></span>
+    `;
+
+    document.getElementById("pPrice").textContent = `${formatKRW(item.price)}원`;
+    document.getElementById("pDiscount").textContent = item.discount ? `할인 -${formatKRW(item.discount)}원` : "할인 없음";
+
+    // 메인에서 넘어온 흐름을 "선택" 이벤트로 기록 (select_item)
+    if (list_id && list_name) {
+      pushEcomEvent("select_item", {
+        item_list_id: list_id,
+        item_list_name: list_name,
+        price_type: price_type,
+        ecommerce: { items: [item] }
+      });
+    }
+
+    // 상세 노출 (view_item)
+    pushEcomEvent("view_item", {
+      price_type: price_type,
+      ecommerce: { items: [item] }
+    });
+
+    document.getElementById("btnAdd").onclick = () => {
+      const qty = Math.max(1, Number(document.getElementById("qty").value || 1));
+      const { item: cartItem, price_type: pt } = buildItem(product, qty);
+      addToCart(cartItem);
+
+      pushEcomEvent("add_to_cart", {
+        currency: CURRENCY,
+        value: calcValue([cartItem]),
+        price_type: pt,
+        ecommerce: { items: [cartItem] }
+      });
+
+      alert("장바구니에 담았습니다. (add_to_cart 전송)");
+    };
+  }
+
+  bindMemberToggle(renderProduct);
+  renderProduct();
+</script>
+</body>
+</html>
