@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GA4 + GTM Lab | Lead Form</title>
+  <link rel="stylesheet" href="assets/style.css" />
+  <script>
+    window.dataLayer = window.dataLayer || [];
+  </script>
+  <!-- GTM_HEAD_SLOT -->
+</head>
+<body>
+  <!-- GTM_BODY_SLOT -->
+
+  <header class="site-header">
+    <div class="container topbar">
+      <a class="brand" href="index.html">GA4 + GTM Static Lab Shop</a>
+      <div class="top-controls">
+        <label class="mode-label" for="trackingMode">Tracking Mode</label>
+        <select id="trackingMode" data-tracking-mode>
+          <option value="standard">GA4 Standard</option>
+          <option value="cafe24">Cafe24 Mode</option>
+          <option value="makeshop">MakeShop Mode</option>
+          <option value="godomall">GodoMall Mode</option>
+        </select>
+        <span class="mode-chip">Current: <strong data-current-mode>standard</strong></span>
+        <a class="cart-link" href="cart.html">Cart <span class="badge" data-cart-count>0</span></a>
+      </div>
+    </div>
+    <nav class="container page-nav">
+      <a href="index.html" data-nav-page="index">Home</a>
+      <a href="product.html?sku=SKU_001" data-nav-page="product">Product</a>
+      <a href="cart.html" data-nav-page="cart">Cart</a>
+      <a href="checkout.html" data-nav-page="checkout">Checkout</a>
+      <a href="thankyou.html" data-nav-page="thankyou">Thankyou</a>
+      <a href="form.html" data-nav-page="form">Lead Form</a>
+      <a href="buttons.html" data-nav-page="buttons">Buttons</a>
+      <a href="builder.html" data-nav-page="builder">Builder Mode</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="panel">
+      <h1 class="page-title">가짜 리드 폼</h1>
+      <p class="small">
+        비식별 필드만 포함합니다. 페이지 코드는 제출 이벤트를 push하지 않습니다.
+        GTM Form Submission/Click 트리거로 실습하세요.
+      </p>
+
+      <form id="leadForm" data-form-id="lead_dummy_form">
+        <div class="field-grid">
+          <div class="field">
+            <label for="interestCategory">관심상품 카테고리</label>
+            <select id="interestCategory" name="interest_category" data-form-field>
+              <option value="stationery">Stationery</option>
+              <option value="apparel">Apparel</option>
+              <option value="lifestyle">Lifestyle</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="budgetRange">예산 범위</label>
+            <select id="budgetRange" name="budget_range" data-form-field>
+              <option value="lt_30000">30,000 미만</option>
+              <option value="30000_70000">30,000~70,000</option>
+              <option value="gt_70000">70,000 초과</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="inquiryType">문의 유형</label>
+            <select id="inquiryType" name="inquiry_type" data-form-field>
+              <option value="demo">데모 요청</option>
+              <option value="pricing">가격 문의</option>
+              <option value="partnership">제휴 문의</option>
+            </select>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top:12px;">
+          <button id="btnFormSubmit" class="btn accent" type="submit">폼 제출 (push 누락)</button>
+        </div>
+      </form>
+      <p class="small" style="margin-top:10px;">
+        폼 시작 DOM hook: <code>form[data-form-start-ready="true"]</code>
+      </p>
+    </section>
+
+    <section class="panel" style="margin-top:14px;">
+      <h2 class="page-title">GTM 실습용 제출 payload</h2>
+      <pre id="formPayload">{}</pre>
+    </section>
+  </main>
+
+  <div id="doneModal" class="modal-backdrop" aria-hidden="true">
+    <div class="modal">
+      <h3>제출 완료(모의)</h3>
+      <p class="small">폼 제출 완료 UI입니다. 이 순간의 추적은 GTM에서 구성하세요.</p>
+      <div class="btn-row">
+        <button id="btnCloseModal" class="btn secondary" type="button">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    LAB.initCommon("form");
+
+    var form = document.getElementById("leadForm");
+    var payloadEl = document.getElementById("formPayload");
+    var modal = document.getElementById("doneModal");
+    var hasStarted = false;
+
+    function readPayload() {
+      return {
+        form_id: form.dataset.formId,
+        interest_category: document.getElementById("interestCategory").value,
+        budget_range: document.getElementById("budgetRange").value,
+        inquiry_type: document.getElementById("inquiryType").value,
+        mode: LAB.getMode()
+      };
+    }
+
+    function renderPayload() {
+      payloadEl.textContent = JSON.stringify(readPayload(), null, 2);
+    }
+
+    form.querySelectorAll("[data-form-field]").forEach(function (field) {
+      field.addEventListener("focus", function () {
+        if (!hasStarted) {
+          hasStarted = true;
+          form.setAttribute("data-form-start-ready", "true");
+          form.setAttribute("data-form-start-ts", String(Date.now()));
+        }
+      });
+      field.addEventListener("change", renderPayload);
+    });
+
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+      var payload = readPayload();
+      form.setAttribute("data-form-submit-ready", "true");
+      form.setAttribute("data-form-submit-payload", JSON.stringify(payload));
+      renderPayload();
+      modal.classList.add("open");
+      modal.setAttribute("aria-hidden", "false");
+    });
+
+    document.getElementById("btnCloseModal").addEventListener("click", function () {
+      modal.classList.remove("open");
+      modal.setAttribute("aria-hidden", "true");
+    });
+
+    renderPayload();
+  </script>
+</body>
+</html>

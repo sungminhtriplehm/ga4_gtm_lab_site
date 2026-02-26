@@ -1,173 +1,130 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <title>Lab Shop | Home</title>
-
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GA4 + GTM Lab | Home</title>
   <link rel="stylesheet" href="assets/style.css" />
   <script>
-    // dataLayer는 GTM이 로드되기 전에 먼저 선언하는 것이 권장됩니다.
     window.dataLayer = window.dataLayer || [];
   </script>
-
-  <!-- GTM HEAD SNIPPET: Google Tag Manager에서 복사한 <script>...</script>를 여기 붙여넣으세요 -->
-   
-  <!-- Google Tag Manager -->
-  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-  })(window,document,'script','dataLayer','GTM-TTWSJGDJ');</script>
-  <!-- End Google Tag Manager -->
-
+  <!-- GTM_HEAD_SLOT -->
 </head>
 <body>
+  <!-- GTM_BODY_SLOT -->
 
-  <!-- GTM BODY SNIPPET: Google Tag Manager에서 복사한 <noscript>...</noscript>를 여기 붙여넣으세요 -->
-
-<header class="container">
-  <a class="brand" href="index.html" aria-label="Home">
-    <div class="logo" aria-hidden="true"></div>
-    <div>
-      <h1>GTM + GA4 전자상거래 실습 미니샵</h1>
-      <div class="small">정적 페이지( GitHub Pages ) + dataLayer 기반 이벤트</div>
-    </div>
-  </a>
-
-  <nav class="nav">
-    <div class="pill">
-      <label style="display:flex; align-items:center; gap:8px;">
-        <input type="checkbox" data-member-toggle />
-        <span data-member-label>회원가 OFF</span>
-      </label>
-    </div>
-
-    <a class="pill" href="cart.html">
-      🛒 장바구니
-      <span class="badge" data-cart-count>0</span>
-    </a>
-  </nav>
-</header>
-
-<main class="container">
-  <section class="hero">
-    <div>
-      <h2>학습 목표</h2>
-      <p>
-        <b>메인 → 상세 → 장바구니 → 체크아웃 → 구매완료</b> 흐름을 직접 만들고,
-        GA4/GTM에서 <span class="inline code">view_item_list</span>, <span class="inline code">select_item</span>,
-        <span class="inline code">view_item</span>, <span class="inline code">add_to_cart</span>,
-        <span class="inline code">begin_checkout</span>, <span class="inline code">purchase</span> 등을 실습합니다.
-      </p>
-    </div>
-    <div class="kpi">
-      <div class="box">
-        <div class="label">회원가 상태</div>
-        <div class="value" id="memberState">OFF</div>
-      </div>
-      <div class="box">
-        <div class="label">테스트 팁</div>
-        <div class="value">GTM Preview + GA4 DebugView</div>
+  <header class="site-header">
+    <div class="container topbar">
+      <a class="brand" href="index.html">GA4 + GTM Static Lab Shop</a>
+      <div class="top-controls">
+        <label class="mode-label" for="trackingMode">Tracking Mode</label>
+        <select id="trackingMode" data-tracking-mode>
+          <option value="standard">GA4 Standard</option>
+          <option value="cafe24">Cafe24 Mode</option>
+          <option value="makeshop">MakeShop Mode</option>
+          <option value="godomall">GodoMall Mode</option>
+        </select>
+        <span class="mode-chip">Current: <strong data-current-mode>standard</strong></span>
+        <a class="cart-link" href="cart.html">Cart <span class="badge" data-cart-count>0</span></a>
       </div>
     </div>
-  </section>
+    <nav class="container page-nav">
+      <a href="index.html" data-nav-page="index">Home</a>
+      <a href="product.html?sku=SKU_001" data-nav-page="product">Product</a>
+      <a href="cart.html" data-nav-page="cart">Cart</a>
+      <a href="checkout.html" data-nav-page="checkout">Checkout</a>
+      <a href="thankyou.html" data-nav-page="thankyou">Thankyou</a>
+      <a href="form.html" data-nav-page="form">Lead Form</a>
+      <a href="buttons.html" data-nav-page="buttons">Buttons</a>
+      <a href="builder.html" data-nav-page="builder">Builder Mode</a>
+    </nav>
+  </header>
 
-  <section class="grid" id="productList" aria-label="Product list"></section>
-</main>
+  <main class="container">
+    <section class="panel hero">
+      <div>
+        <h1 class="page-title">메인 상품 리스트</h1>
+        <p class="small">
+          이 페이지는 로드 시 <code>view_item_list</code> 1회, 상품 카드 클릭 시 <code>select_item</code>,
+          빠른 담기 시 <code>add_to_cart</code>를 전송합니다.
+        </p>
+      </div>
+      <div class="hint">
+        <strong>실습 목표</strong><br />
+        메인 → 상세 → 장바구니 → 체크아웃 → 구매완료 흐름을 GTM Preview와 GA4 DebugView에서 확인하세요.
+      </div>
+    </section>
 
-<footer class="container">
-  <div>
-    이 페이지는 GA4/GTM 실습용 가짜 스토어입니다. 실제 결제/회원/개인정보 수집은 없습니다.
-  </div>
-  <div class="small">
-    팁) 브라우저 광고 차단 확장프로그램이 GA/GTM 요청을 막을 수 있어요. 테스트 중엔 잠시 꺼보는 게 좋습니다.
-  </div>
-</footer>
+    <section class="panel" style="margin-top:14px;">
+      <h2 class="page-title">상품</h2>
+      <div id="productList" class="product-grid"></div>
+    </section>
+  </main>
 
-<script src="assets/shop.js"></script>
-<script>
-  const LIST_ID = "home_list";
-  const LIST_NAME = "Home Product List";
+  <script src="assets/data.js"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    LAB.initCommon("index");
 
-  function renderProducts() {
-    setMemberToggleUI();
-    updateCartBadge();
+    var LIST_ID = "home_list";
+    var LIST_NAME = "Main Product List";
+    var listContainer = document.getElementById("productList");
+    var products = LAB.getProducts();
+    var listItems = [];
 
-    document.getElementById("memberState").textContent = isMember() ? "ON" : "OFF";
-
-    const listEl = document.getElementById("productList");
-    listEl.innerHTML = "";
-
-    const itemsForEvent = [];
-
-    CATALOG.forEach((p, idx) => {
-      const { item, price_type } = buildItem(p, 1, {
+    products.forEach(function (product, index) {
+      var item = LAB.buildItem(product, 1, {
         item_list_id: LIST_ID,
         item_list_name: LIST_NAME,
-        index: idx
+        index: index
       });
+      listItems.push(item);
 
-      itemsForEvent.push(item);
+      var card = document.createElement("article");
+      card.className = "product-card";
+      card.innerHTML =
+        "<h3>" + product.item_name + "</h3>" +
+        '<div class="meta-list">' +
+        "<span>SKU: " + product.item_id + "</span>" +
+        "<span>Category: " + product.item_category + "</span>" +
+        "</div>" +
+        '<div class="price">' + LAB.formatMoney(product.price) + " KRW</div>" +
+        '<div class="btn-row">' +
+        '  <a class="btn secondary" href="product.html?sku=' + encodeURIComponent(product.item_id) + '" data-action="detail">상세 보기</a>' +
+        '  <button class="btn" type="button" data-action="quick-add">빠른 담기</button>' +
+        "</div>";
 
-      const card = document.createElement("article");
-      card.className = "card";
-
-      const priceText = `${formatKRW(item.price)}원`;
-      const discountText = item.discount ? `할인 -${formatKRW(item.discount)}원` : "할인 없음";
-
-      const href = `product.html?sku=${encodeURIComponent(p.item_id)}&list_id=${encodeURIComponent(LIST_ID)}&list_name=${encodeURIComponent(LIST_NAME)}&index=${idx}`;
-
-      card.innerHTML = `
-        <h3>${p.item_name}</h3>
-        <div class="meta">
-          <span>카테고리: ${p.item_category}</span>
-          <span>SKU: <code class="inline">${p.item_id}</code></span>
-          <span>price_type: <code class="inline">${price_type}</code></span>
-        </div>
-        <div class="price">
-          <strong>${priceText}</strong>
-          <span>${discountText}</span>
-        </div>
-        <div class="row">
-          <a class="btn" href="${href}">상세 보기</a>
-          <button class="btn secondary" data-quick-add>바로 담기</button>
-        </div>
-        <div class="small">
-          메인에서 상품이 노출되면 <code class="inline">view_item_list</code>를 1회 전송합니다.
-        </div>
-      `;
-
-      // Quick add: add_to_cart
-      card.querySelector("[data-quick-add]").addEventListener("click", () => {
-        const qty = 1;
-        const { item: cartItem, price_type: pt } = buildItem(p, qty);
-        addToCart(cartItem);
-
-        pushEcomEvent("add_to_cart", {
-          currency: CURRENCY,
-          value: calcValue([cartItem]),
-          price_type: pt,
-          ecommerce: { items: [cartItem] }
+      var detailButton = card.querySelector('[data-action="detail"]');
+      detailButton.addEventListener("click", function (event) {
+        event.preventDefault();
+        LAB.pushEcomEvent("select_item", {
+          currency: LAB.currency,
+          value: LAB.calcValue([item]),
+          ecommerce: { items: [item] }
         });
-
-        alert("장바구니에 담았습니다. (add_to_cart 전송)");
+        window.location.href = detailButton.getAttribute("href");
       });
 
-      listEl.appendChild(card);
+      var quickAddButton = card.querySelector('[data-action="quick-add"]');
+      quickAddButton.addEventListener("click", function () {
+        LAB.addToCart(item);
+        LAB.pushEcomEvent("add_to_cart", {
+          currency: LAB.currency,
+          value: LAB.calcValue([item]),
+          ecommerce: { items: [item] }
+        });
+      });
+
+      listContainer.appendChild(card);
     });
 
-    // view_item_list (상품 리스트 노출)
-    pushEcomEvent("view_item_list", {
+    LAB.pushEcomEvent("view_item_list", {
+      currency: LAB.currency,
+      value: LAB.calcValue(listItems),
       item_list_id: LIST_ID,
       item_list_name: LIST_NAME,
-      price_type: isMember() ? "member" : "regular",
-      ecommerce: { items: itemsForEvent }
+      ecommerce: { items: listItems }
     });
-  }
-
-  bindMemberToggle(renderProducts);
-  renderProducts();
-</script>
+  </script>
 </body>
 </html>

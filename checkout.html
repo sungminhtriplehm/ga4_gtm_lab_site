@@ -1,202 +1,151 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <title>Lab Shop | Checkout</title>
-
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GA4 + GTM Lab | Checkout</title>
   <link rel="stylesheet" href="assets/style.css" />
   <script>
-    // dataLayer는 GTM이 로드되기 전에 먼저 선언하는 것이 권장됩니다.
     window.dataLayer = window.dataLayer || [];
   </script>
-
-  <!-- GTM HEAD SNIPPET: Google Tag Manager에서 복사한 <script>...</script>를 여기 붙여넣으세요 -->
-   
-  <!-- Google Tag Manager -->
-  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-  })(window,document,'script','dataLayer','GTM-TTWSJGDJ');</script>
-  <!-- End Google Tag Manager -->
-
+  <!-- GTM_HEAD_SLOT -->
 </head>
 <body>
+  <!-- GTM_BODY_SLOT -->
 
-  <!-- GTM BODY SNIPPET: Google Tag Manager에서 복사한 <noscript>...</noscript>를 여기 붙여넣으세요 -->
-
-<header class="container">
-  <a class="brand" href="index.html" aria-label="Home">
-    <div class="logo" aria-hidden="true"></div>
-    <div>
-      <h1>GTM + GA4 전자상거래 실습 미니샵</h1>
-      <div class="small">정적 페이지( GitHub Pages ) + dataLayer 기반 이벤트</div>
-    </div>
-  </a>
-
-  <nav class="nav">
-    <div class="pill">
-      <label style="display:flex; align-items:center; gap:8px;">
-        <input type="checkbox" data-member-toggle />
-        <span data-member-label>회원가 OFF</span>
-      </label>
-    </div>
-
-    <a class="pill" href="cart.html">
-      🛒 장바구니
-      <span class="badge" data-cart-count>0</span>
-    </a>
-  </nav>
-</header>
-
-<main class="container">
-  <section class="panel">
-    <h2 style="margin:0 0 8px;">체크아웃 (모의)</h2>
-    <div class="small">여기서는 실제 결제가 아닌, 이벤트 학습용 흐름만 만듭니다.</div>
-
-    <div id="empty" class="small" style="margin-top:10px; display:none;">
-      장바구니가 비어 있습니다. <a class="btn" href="index.html" style="margin-left:8px;">상품 보러가기</a>
-    </div>
-
-    <div id="content" style="display:none; margin-top:10px;">
-      <div class="grid">
-        <div class="panel" style="grid-column: span 7;">
-          <h3 style="margin:0 0 10px;">주문 상품</h3>
-          <div id="summary"></div>
-        </div>
-
-        <div class="panel" style="grid-column: span 5;">
-          <h3 style="margin:0 0 10px;">배송/결제 정보</h3>
-
-          <div class="row">
-            <div style="flex:1; min-width:160px;">
-              <label>배송 옵션 (shipping_tier)</label>
-              <select id="shippingTier">
-                <option value="Standard">Standard</option>
-                <option value="Express">Express</option>
-              </select>
-            </div>
-            <div style="flex:1; min-width:160px;">
-              <label>결제 수단 (payment_type)</label>
-              <select id="paymentType">
-                <option value="Card">Card</option>
-                <option value="BankTransfer">BankTransfer</option>
-                <option value="MobilePay">MobilePay</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="row" style="margin-top:12px;">
-            <button class="btn" id="btnPay">결제하기(모의)</button>
-            <a class="btn secondary" href="cart.html">장바구니로</a>
-          </div>
-
-          <div class="small" style="margin-top:10px;">
-            버튼 클릭 시 <code class="inline">add_shipping_info</code>, <code class="inline">add_payment_info</code>를 전송한 뒤
-            구매완료 페이지로 이동합니다.
-          </div>
-        </div>
+  <header class="site-header">
+    <div class="container topbar">
+      <a class="brand" href="index.html">GA4 + GTM Static Lab Shop</a>
+      <div class="top-controls">
+        <label class="mode-label" for="trackingMode">Tracking Mode</label>
+        <select id="trackingMode" data-tracking-mode>
+          <option value="standard">GA4 Standard</option>
+          <option value="cafe24">Cafe24 Mode</option>
+          <option value="makeshop">MakeShop Mode</option>
+          <option value="godomall">GodoMall Mode</option>
+        </select>
+        <span class="mode-chip">Current: <strong data-current-mode>standard</strong></span>
+        <a class="cart-link" href="cart.html">Cart <span class="badge" data-cart-count>0</span></a>
       </div>
     </div>
-  </section>
-</main>
+    <nav class="container page-nav">
+      <a href="index.html" data-nav-page="index">Home</a>
+      <a href="product.html?sku=SKU_001" data-nav-page="product">Product</a>
+      <a href="cart.html" data-nav-page="cart">Cart</a>
+      <a href="checkout.html" data-nav-page="checkout">Checkout</a>
+      <a href="thankyou.html" data-nav-page="thankyou">Thankyou</a>
+      <a href="form.html" data-nav-page="form">Lead Form</a>
+      <a href="buttons.html" data-nav-page="buttons">Buttons</a>
+      <a href="builder.html" data-nav-page="builder">Builder Mode</a>
+    </nav>
+  </header>
 
-<footer class="container">
-  <div>
-    이 페이지는 GA4/GTM 실습용 가짜 스토어입니다. 실제 결제/회원/개인정보 수집은 없습니다.
-  </div>
-  <div class="small">
-    팁) 브라우저 광고 차단 확장프로그램이 GA/GTM 요청을 막을 수 있어요. 테스트 중엔 잠시 꺼보는 게 좋습니다.
-  </div>
-</footer>
+  <main class="container">
+    <section class="panel">
+      <h1 class="page-title">체크아웃</h1>
+      <p class="small">
+        배송정보 제출 시 <code>add_shipping_info</code>, 결제정보 제출 시
+        <code>add_payment_info</code>를 전송합니다.
+      </p>
+      <div id="checkoutContent"></div>
+    </section>
+  </main>
 
-<script src="assets/shop.js"></script>
-<script>
-  function render() {
-    setMemberToggleUI();
-    updateCartBadge();
+  <script src="assets/data.js"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    LAB.initCommon("checkout");
 
-    const cart = getCart();
-    const emptyEl = document.getElementById("empty");
-    const content = document.getElementById("content");
-    const summary = document.getElementById("summary");
+    var container = document.getElementById("checkoutContent");
+    var cart = LAB.getCart();
 
     if (!cart.length) {
-      emptyEl.style.display = "block";
-      content.style.display = "none";
-      return;
+      container.innerHTML =
+        '<p class="small">장바구니가 비어 있습니다.</p>' +
+        '<a class="btn secondary" href="index.html">상품 보러가기</a>';
+    } else {
+      var rows = cart.map(function (item) {
+        return (
+          "<tr>" +
+          "<td>" + item.item_name + "</td>" +
+          "<td>" + item.quantity + "</td>" +
+          "<td>" + LAB.formatMoney(item.price) + " KRW</td>" +
+          "<td>" + LAB.formatMoney(Number(item.price) * Number(item.quantity)) + " KRW</td>" +
+          "</tr>"
+        );
+      }).join("");
+
+      container.innerHTML =
+        '<div class="layout-grid two-col">' +
+        '  <div class="panel">' +
+        "    <h2>주문 상품</h2>" +
+        '    <div class="table-wrap">' +
+        "      <table>" +
+        "        <thead><tr><th>상품</th><th>수량</th><th>단가</th><th>합계</th></tr></thead>" +
+        "        <tbody>" + rows + "</tbody>" +
+        "      </table>" +
+        "    </div>" +
+        "    <p><strong>총액: " + LAB.formatMoney(LAB.calcValue(cart)) + " KRW</strong></p>" +
+        "  </div>" +
+        '  <div class="panel">' +
+        "    <h2>배송/결제 정보</h2>" +
+        '    <div class="field">' +
+        '      <label for="shippingTier">배송 옵션 (shipping_tier)</label>' +
+        '      <select id="shippingTier">' +
+        '        <option value="Standard">Standard</option>' +
+        '        <option value="Express">Express</option>' +
+        "      </select>" +
+        "    </div>" +
+        '    <div class="field" style="margin-top:10px;">' +
+        '      <label for="paymentType">결제 수단 (payment_type)</label>' +
+        '      <select id="paymentType">' +
+        '        <option value="Card">Card</option>' +
+        '        <option value="BankTransfer">BankTransfer</option>' +
+        '        <option value="MobilePay">MobilePay</option>' +
+        "      </select>" +
+        "    </div>" +
+        '    <div class="btn-row" style="margin-top:12px;">' +
+        '      <button class="btn secondary" id="btnShippingInfo" type="button">배송정보 제출</button>' +
+        '      <button class="btn secondary" id="btnPaymentInfo" type="button">결제정보 제출</button>' +
+        '      <button class="btn accent" id="btnPlaceOrder" type="button">주문 완료로 이동</button>' +
+        "    </div>" +
+        "  </div>" +
+        "</div>";
+
+      document.getElementById("btnShippingInfo").addEventListener("click", function () {
+        LAB.pushEcomEvent("add_shipping_info", {
+          currency: LAB.currency,
+          value: LAB.calcValue(cart),
+          shipping_tier: document.getElementById("shippingTier").value,
+          ecommerce: { items: cart }
+        });
+      });
+
+      document.getElementById("btnPaymentInfo").addEventListener("click", function () {
+        LAB.pushEcomEvent("add_payment_info", {
+          currency: LAB.currency,
+          value: LAB.calcValue(cart),
+          payment_type: document.getElementById("paymentType").value,
+          ecommerce: { items: cart }
+        });
+      });
+
+      document.getElementById("btnPlaceOrder").addEventListener("click", function () {
+        var shippingTier = document.getElementById("shippingTier").value;
+        var paymentType = document.getElementById("paymentType").value;
+        var order = {
+          transaction_id: LAB.generateTransactionId(),
+          currency: LAB.currency,
+          value: LAB.calcValue(cart),
+          shipping_tier: shippingTier,
+          payment_type: paymentType,
+          items: cart,
+          created_at: new Date().toISOString()
+        };
+        LAB.savePendingOrder(order);
+        window.location.href = "thankyou.html";
+      });
     }
-
-    emptyEl.style.display = "none";
-    content.style.display = "block";
-
-    const value = calcValue(cart);
-    summary.innerHTML = `
-      <table class="table">
-        <thead><tr><th>상품</th><th>수량</th><th>단가</th><th>소계</th></tr></thead>
-        <tbody>
-          ${cart.map(it => `
-            <tr>
-              <td>${it.item_name}<div class="small">SKU: <code class="inline">${it.item_id}</code></div></td>
-              <td>${it.quantity}</td>
-              <td>${formatKRW(it.price)}원</td>
-              <td>${formatKRW(Number(it.price)*Number(it.quantity))}원</td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-      <div class="kpi">
-        <div class="box"><div class="label">총액(value)</div><div class="value">${formatKRW(value)}원</div></div>
-        <div class="box"><div class="label">통화(currency)</div><div class="value">${CURRENCY}</div></div>
-      </div>
-    `;
-
-    document.getElementById("btnPay").onclick = () => {
-      const shipping_tier = document.getElementById("shippingTier").value;
-      const payment_type = document.getElementById("paymentType").value;
-
-      // add_shipping_info
-      pushEcomEvent("add_shipping_info", {
-        currency: CURRENCY,
-        value: value,
-        shipping_tier: shipping_tier,
-        ecommerce: { items: cart }
-      });
-
-      // add_payment_info
-      pushEcomEvent("add_payment_info", {
-        currency: CURRENCY,
-        value: value,
-        payment_type: payment_type,
-        ecommerce: { items: cart }
-      });
-
-      // 주문 정보 생성 (purchase는 thankyou에서 1회만 보내도록)
-      const transaction_id = "T_" + Date.now();
-      const order = {
-        transaction_id,
-        currency: CURRENCY,
-        value: value,
-        tax: 0,
-        shipping: 0,
-        shipping_tier,
-        payment_type,
-        items: cart
-      };
-      sessionStorage.setItem(STORAGE.ORDER, JSON.stringify(order));
-
-      location.href = "thankyou.html?tid=" + encodeURIComponent(transaction_id);
-    };
-  }
-
-  bindMemberToggle(() => {
-    setMemberToggleUI();
-    updateCartBadge();
-    alert("체크아웃 단계에서는 회원가 토글을 바꾸지 않는 게 일반적입니다. (학습용 UI로만 제공)");
-  });
-
-  render();
-</script>
+  </script>
 </body>
 </html>

@@ -1,188 +1,140 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <title>Lab Shop | Product</title>
-
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GA4 + GTM Lab | Product</title>
   <link rel="stylesheet" href="assets/style.css" />
   <script>
-    // dataLayer는 GTM이 로드되기 전에 먼저 선언하는 것이 권장됩니다.
     window.dataLayer = window.dataLayer || [];
   </script>
-
-  <!-- GTM HEAD SNIPPET: Google Tag Manager에서 복사한 <script>...</script>를 여기 붙여넣으세요 -->
-   
-  <!-- Google Tag Manager -->
-  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-  })(window,document,'script','dataLayer','GTM-TTWSJGDJ');</script>
-  <!-- End Google Tag Manager -->
-
+  <!-- GTM_HEAD_SLOT -->
 </head>
 <body>
+  <!-- GTM_BODY_SLOT -->
 
-  <!-- GTM BODY SNIPPET: Google Tag Manager에서 복사한 <noscript>...</noscript>를 여기 붙여넣으세요 -->
-
-<header class="container">
-  <a class="brand" href="index.html" aria-label="Home">
-    <div class="logo" aria-hidden="true"></div>
-    <div>
-      <h1>GTM + GA4 전자상거래 실습 미니샵</h1>
-      <div class="small">정적 페이지( GitHub Pages ) + dataLayer 기반 이벤트</div>
-    </div>
-  </a>
-
-  <nav class="nav">
-    <div class="pill">
-      <label style="display:flex; align-items:center; gap:8px;">
-        <input type="checkbox" data-member-toggle />
-        <span data-member-label>회원가 OFF</span>
-      </label>
-    </div>
-
-    <a class="pill" href="cart.html">
-      🛒 장바구니
-      <span class="badge" data-cart-count>0</span>
-    </a>
-  </nav>
-</header>
-
-<main class="container">
-  <section class="panel" id="productPanel">
-    <h2 id="pName" style="margin:0 0 8px;">상품 상세</h2>
-    <div class="meta" id="pMeta"></div>
-    <div class="price" style="margin-top:10px;">
-      <strong id="pPrice">-</strong>
-      <span id="pDiscount">-</span>
-    </div>
-
-    <div class="row" style="margin-top:12px;">
-      <div style="min-width:140px;">
-        <label>수량</label>
-        <input type="number" id="qty" min="1" value="1" />
-      </div>
-      <div style="flex:1; min-width:200px;">
-        <label>동작</label>
-        <div class="row" style="margin-top:6px;">
-          <button class="btn" id="btnAdd">장바구니 담기</button>
-          <a class="btn secondary" href="cart.html">장바구니로 이동</a>
-        </div>
+  <header class="site-header">
+    <div class="container topbar">
+      <a class="brand" href="index.html">GA4 + GTM Static Lab Shop</a>
+      <div class="top-controls">
+        <label class="mode-label" for="trackingMode">Tracking Mode</label>
+        <select id="trackingMode" data-tracking-mode>
+          <option value="standard">GA4 Standard</option>
+          <option value="cafe24">Cafe24 Mode</option>
+          <option value="makeshop">MakeShop Mode</option>
+          <option value="godomall">GodoMall Mode</option>
+        </select>
+        <span class="mode-chip">Current: <strong data-current-mode>standard</strong></span>
+        <a class="cart-link" href="cart.html">Cart <span class="badge" data-cart-count>0</span></a>
       </div>
     </div>
+    <nav class="container page-nav">
+      <a href="index.html" data-nav-page="index">Home</a>
+      <a href="product.html?sku=SKU_001" data-nav-page="product">Product</a>
+      <a href="cart.html" data-nav-page="cart">Cart</a>
+      <a href="checkout.html" data-nav-page="checkout">Checkout</a>
+      <a href="thankyou.html" data-nav-page="thankyou">Thankyou</a>
+      <a href="form.html" data-nav-page="form">Lead Form</a>
+      <a href="buttons.html" data-nav-page="buttons">Buttons</a>
+      <a href="builder.html" data-nav-page="builder">Builder Mode</a>
+    </nav>
+  </header>
 
-    <div class="small" style="margin-top:10px;">
-      이 페이지 로드 시 <code class="inline">view_item</code>가 전송됩니다.
-      <br/>또한 <strong>장바구니 담기</strong>는 (실습용) 페이지에서 <code class="inline">dataLayer.push</code>를 하지 않으므로, GTM의 <code class="inline">맞춤 HTML</code>로 <code class="inline">add_to_cart</code>를 구현해보세요.
-      메인에서 넘어온 경우(쿼리스트링 포함) <code class="inline">select_item</code>도 함께 전송됩니다.
-    </div>
-  </section>
+  <main class="container">
+    <section class="panel">
+      <h1 class="page-title">상품 상세</h1>
+      <div id="productBox"></div>
+      <p class="small" style="margin-top:10px;">
+        이 페이지는 <code>view_item</code>만 전송합니다. <code>add_to_cart</code>는 페이지 코드에서
+        일부러 push하지 않습니다. GTM Custom HTML에서 버튼 dataset을 읽어 직접 push하세요.
+      </p>
+    </section>
 
-  <section class="panel" style="margin-top:12px;">
-    <h3 style="margin:0 0 8px;">학습 포인트</h3>
-    <ul class="small">
-      <li>메인 페이지의 <code class="inline">view_item_list</code> → 상세 페이지의 <code class="inline">select_item</code>/<code class="inline">view_item</code> 흐름을 GA4 경로/퍼널 탐색에서 확인</li>
-      <li>회원가(할인) 트래킹: item의 <code class="inline">price</code>, <code class="inline">discount</code>, <code class="inline">item_variant</code>, 그리고 커스텀 <code class="inline">price_type</code> 확인</li>
-    </ul>
-  </section>
-</main>
+    <section class="panel" style="margin-top:14px;">
+      <h2 class="page-title">GTM 실습용 dataset 미리보기</h2>
+      <pre id="datasetPreview">{}</pre>
+    </section>
+  </main>
 
-<footer class="container">
-  <div>
-    이 페이지는 GA4/GTM 실습용 가짜 스토어입니다. 실제 결제/회원/개인정보 수집은 없습니다.
-  </div>
-  <div class="small">
-    팁) 브라우저 광고 차단 확장프로그램이 GA/GTM 요청을 막을 수 있어요. 테스트 중엔 잠시 꺼보는 게 좋습니다.
-  </div>
-</footer>
+  <script src="assets/data.js"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    LAB.initCommon("product");
 
-<script src="assets/shop.js"></script>
-<script>
-  function getParam(name) {
-    return new URLSearchParams(location.search).get(name);
-  }
+    var sku = LAB.getQueryParam("sku") || "SKU_001";
+    var product = LAB.getProductById(sku);
+    var productBox = document.getElementById("productBox");
+    var datasetPreview = document.getElementById("datasetPreview");
 
-  function renderProduct() {
-    setMemberToggleUI();
-    updateCartBadge();
-
-    const sku = getParam("sku") || "SKU_001";
-    const list_id = getParam("list_id");
-    const list_name = getParam("list_name");
-    const index = Number(getParam("index"));
-
-    const product = getProduct(sku);
     if (!product) {
-      document.getElementById("productPanel").innerHTML = "<h2>상품을 찾을 수 없습니다.</h2><a class='btn' href='index.html'>홈으로</a>";
-      return;
-    }
+      productBox.innerHTML = '<p>상품을 찾을 수 없습니다.</p><a class="btn secondary" href="index.html">메인으로</a>';
+    } else {
+      var quantityInputId = "qtyInput";
+      var buttonId = "btnAddToCart";
+      var item = LAB.buildItem(product, 1);
 
-    const { item, price_type } = buildItem(product, 1, {
-      item_list_id: list_id || undefined,
-      item_list_name: list_name || undefined,
-      index: Number.isFinite(index) ? index : undefined
-    });
+      productBox.innerHTML =
+        '<div class="layout-grid two-col">' +
+        '  <div class="panel">' +
+        "    <h2>" + product.item_name + "</h2>" +
+        '    <div class="meta-list">' +
+        "      <span>SKU: " + product.item_id + "</span>" +
+        "      <span>Category: " + product.item_category + "</span>" +
+        "      <span>Variant: " + product.item_variant + "</span>" +
+        "    </div>" +
+        '    <div class="price" style="margin-top:10px;">' + LAB.formatMoney(product.price) + " KRW</div>" +
+        "  </div>" +
+        '  <div class="panel">' +
+        '    <div class="field">' +
+        '      <label for="' + quantityInputId + '">수량</label>' +
+        '      <input id="' + quantityInputId + '" type="number" min="1" value="1" />' +
+        "    </div>" +
+        '    <div class="btn-row" style="margin-top:10px;">' +
+        '      <button id="' + buttonId + '" class="btn" type="button">장바구니 담기 (push 누락)</button>' +
+        '      <a class="btn secondary" href="cart.html">장바구니로 이동</a>' +
+        "    </div>" +
+        "  </div>" +
+        "</div>";
 
-    document.getElementById("pName").textContent = product.item_name;
-    document.getElementById("pMeta").innerHTML = `
-      <span>카테고리: ${product.item_category}</span>
-      <span>SKU: <code class="inline">${product.item_id}</code></span>
-      <span>price_type: <code class="inline">${price_type}</code></span>
-      <span>item_variant: <code class="inline">${item.item_variant}</code></span>
-    `;
-
-    document.getElementById("pPrice").textContent = `${formatKRW(item.price)}원`;
-    document.getElementById("pDiscount").textContent = item.discount ? `할인 -${formatKRW(item.discount)}원` : "할인 없음";
-
-    // 메인에서 넘어온 흐름을 "선택" 이벤트로 기록 (select_item)
-    if (list_id && list_name) {
-      pushEcomEvent("select_item", {
-        item_list_id: list_id,
-        item_list_name: list_name,
-        price_type: price_type,
+      LAB.pushEcomEvent("view_item", {
+        currency: LAB.currency,
+        value: LAB.calcValue([item]),
         ecommerce: { items: [item] }
       });
+
+      var addButton = document.getElementById(buttonId);
+      var qtyInput = document.getElementById(quantityInputId);
+
+      function syncDataset() {
+        var qty = Math.max(1, Number(qtyInput.value || 1));
+        var dataset = {
+          sku: product.item_id,
+          name: product.item_name,
+          price: String(product.price),
+          category: product.item_category,
+          currency: LAB.currency,
+          quantity: String(qty),
+          variant: product.item_variant
+        };
+
+        addButton.dataset.sku = dataset.sku;
+        addButton.dataset.name = dataset.name;
+        addButton.dataset.price = dataset.price;
+        addButton.dataset.category = dataset.category;
+        addButton.dataset.currency = dataset.currency;
+        addButton.dataset.quantity = dataset.quantity;
+        addButton.dataset.variant = dataset.variant;
+        datasetPreview.textContent = JSON.stringify(dataset, null, 2);
+      }
+
+      qtyInput.addEventListener("input", syncDataset);
+      syncDataset();
+
+      addButton.addEventListener("click", function () {
+        var qty = Math.max(1, Number(qtyInput.value || 1));
+        LAB.addToCart(LAB.buildItem(product, qty));
+      });
     }
-
-    // 상세 노출 (view_item)
-    pushEcomEvent("view_item", {
-      price_type: price_type,
-      ecommerce: { items: [item] }
-    });
-
-    
-    // ---------------- 맞춤 HTML 실습용 데이터(버튼 dataset) ----------------
-    // GTM "맞춤 HTML" 태그에서 아래 dataset/DOM 값을 읽어 add_to_cart payload를 만들 수 있습니다.
-    const btnAdd = document.getElementById("btnAdd");
-    btnAdd.dataset.sku = product.item_id;
-    btnAdd.dataset.name = product.item_name;
-    btnAdd.dataset.category = product.item_category;
-    btnAdd.dataset.brand = product.item_brand;
-    btnAdd.dataset.regularPrice = String(product.regular_price);
-    btnAdd.dataset.memberPrice = String(product.member_price);
-    // 현재 표시 가격(회원가 토글에 따라 바뀜)
-    btnAdd.dataset.price = String(item.price);
-    btnAdd.dataset.discount = String(item.discount || 0);
-    btnAdd.dataset.variant = String(item.item_variant || "");
-    btnAdd.dataset.priceType = String(price_type);
-    btnAdd.dataset.currency = String(CURRENCY);
-
-document.getElementById("btnAdd").onclick = () => {
-      const qty = Math.max(1, Number(document.getElementById("qty").value || 1));
-      const { item: cartItem, price_type: pt } = buildItem(product, qty);
-      addToCart(cartItem);
-
-      // (실습용) 이 페이지는 add_to_cart를 dataLayer로 직접 push하지 않습니다.
-      // GTM에서 "맞춤 HTML" 태그로 add_to_cart 이벤트를 직접 만들어 push해보세요.
-
-      alert("장바구니에 담았습니다. (add_to_cart는 GTM 맞춤 HTML에서 전송 실습)");
-    };
-  }
-
-  bindMemberToggle(renderProduct);
-  renderProduct();
-</script>
+  </script>
 </body>
 </html>

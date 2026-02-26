@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GA4 + GTM Lab | Builder Mode Hub</title>
+  <link rel="stylesheet" href="assets/style.css" />
+  <script>
+    window.dataLayer = window.dataLayer || [];
+  </script>
+  <!-- GTM_HEAD_SLOT -->
+</head>
+<body>
+  <!-- GTM_BODY_SLOT -->
+
+  <header class="site-header">
+    <div class="container topbar">
+      <a class="brand" href="index.html">GA4 + GTM Static Lab Shop</a>
+      <div class="top-controls">
+        <label class="mode-label" for="trackingMode">Tracking Mode</label>
+        <select id="trackingMode" data-tracking-mode>
+          <option value="standard">GA4 Standard</option>
+          <option value="cafe24">Cafe24 Mode</option>
+          <option value="makeshop">MakeShop Mode</option>
+          <option value="godomall">GodoMall Mode</option>
+        </select>
+        <span class="mode-chip">Current: <strong data-current-mode>standard</strong></span>
+        <a class="cart-link" href="cart.html">Cart <span class="badge" data-cart-count>0</span></a>
+      </div>
+    </div>
+    <nav class="container page-nav">
+      <a href="index.html" data-nav-page="index">Home</a>
+      <a href="product.html?sku=SKU_001" data-nav-page="product">Product</a>
+      <a href="cart.html" data-nav-page="cart">Cart</a>
+      <a href="checkout.html" data-nav-page="checkout">Checkout</a>
+      <a href="thankyou.html" data-nav-page="thankyou">Thankyou</a>
+      <a href="form.html" data-nav-page="form">Lead Form</a>
+      <a href="buttons.html" data-nav-page="buttons">Buttons</a>
+      <a href="builder.html" data-nav-page="builder">Builder Mode</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="panel">
+      <h1 class="page-title">빌더 모드 매핑 허브</h1>
+      <p class="small">
+        현재 모드에서 발생하는 이벤트명과 GA4 표준 이벤트명을 비교해서 GTM 매핑 실습을 진행하세요.
+      </p>
+      <div class="btn-row" style="margin-top:10px;">
+        <button id="btnToggleHighlight" class="btn secondary" type="button">DOM 하이라이트 토글</button>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-top:14px;">
+      <h2 class="page-title">모드별 HTML 구조 예시 (학습용)</h2>
+      <div class="layout-grid three-col">
+        <article class="panel" data-highlight-target data-builder="cafe24">
+          <h3>Cafe24 스타일</h3>
+          <pre><code>&lt;div class="cafe24-product" data-product-no="1001"
+  data-price="12000" data-category="stationery"&gt;
+  &lt;a class="prdLink"&gt;Starter Analytics Notebook&lt;/a&gt;
+&lt;/div&gt;</code></pre>
+        </article>
+        <article class="panel" data-highlight-target data-builder="makeshop">
+          <h3>MakeShop 스타일</h3>
+          <pre><code>window.MS_PRODUCT = {
+  product_uid: "SKU_001",
+  product_name: "Starter Analytics Notebook",
+  sell_price: 12000
+};</code></pre>
+        </article>
+        <article class="panel" data-highlight-target data-builder="godomall">
+          <h3>GodoMall 스타일</h3>
+          <pre><code>&lt;input type="hidden" id="gd-order-items"
+  value='[{"item_id":"SKU_001","price":12000}]' /&gt;</code></pre>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel" style="margin-top:14px;">
+      <h2 class="page-title">현재 모드 이벤트명 매핑 표</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>GA4 표준 이벤트명</th>
+              <th>현재 모드 이벤트명</th>
+              <th>매핑 대상</th>
+            </tr>
+          </thead>
+          <tbody id="mappingBody"></tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px;">
+        GTM에서 Custom Event Trigger(가상 이벤트명) -> GA4 Event Tag(표준 이벤트명)으로 연결하세요.
+      </p>
+    </section>
+  </main>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/app.js"></script>
+  <script src="assets/highlight.js"></script>
+  <script>
+    LAB.initCommon("builder");
+
+    var standards = [
+      "view_item_list",
+      "select_item",
+      "view_item",
+      "add_to_cart",
+      "view_cart",
+      "begin_checkout",
+      "add_shipping_info",
+      "add_payment_info",
+      "purchase"
+    ];
+
+    function renderMappingTable() {
+      var body = document.getElementById("mappingBody");
+      body.innerHTML = standards.map(function (eventName) {
+        return (
+          "<tr>" +
+          "<td><code>" + eventName + "</code></td>" +
+          "<td><code>" + LAB.mapEventName(eventName) + "</code></td>" +
+          "<td>DLV: ecommerce.items / value / currency / transaction_id</td>" +
+          "</tr>"
+        );
+      }).join("");
+    }
+
+    document.getElementById("btnToggleHighlight").addEventListener("click", function () {
+      var enabled = LAB_HIGHLIGHT.toggle();
+      this.textContent = enabled ? "DOM 하이라이트 끄기" : "DOM 하이라이트 토글";
+    });
+
+    document.addEventListener("lab:modechange", renderMappingTable);
+    renderMappingTable();
+  </script>
+</body>
+</html>

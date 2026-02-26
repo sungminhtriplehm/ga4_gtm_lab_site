@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GA4 + GTM Lab | Button Tracking</title>
+  <link rel="stylesheet" href="assets/style.css" />
+  <script>
+    window.dataLayer = window.dataLayer || [];
+  </script>
+  <!-- GTM_HEAD_SLOT -->
+</head>
+<body>
+  <!-- GTM_BODY_SLOT -->
+
+  <header class="site-header">
+    <div class="container topbar">
+      <a class="brand" href="index.html">GA4 + GTM Static Lab Shop</a>
+      <div class="top-controls">
+        <label class="mode-label" for="trackingMode">Tracking Mode</label>
+        <select id="trackingMode" data-tracking-mode>
+          <option value="standard">GA4 Standard</option>
+          <option value="cafe24">Cafe24 Mode</option>
+          <option value="makeshop">MakeShop Mode</option>
+          <option value="godomall">GodoMall Mode</option>
+        </select>
+        <span class="mode-chip">Current: <strong data-current-mode>standard</strong></span>
+        <a class="cart-link" href="cart.html">Cart <span class="badge" data-cart-count>0</span></a>
+      </div>
+    </div>
+    <nav class="container page-nav">
+      <a href="index.html" data-nav-page="index">Home</a>
+      <a href="product.html?sku=SKU_001" data-nav-page="product">Product</a>
+      <a href="cart.html" data-nav-page="cart">Cart</a>
+      <a href="checkout.html" data-nav-page="checkout">Checkout</a>
+      <a href="thankyou.html" data-nav-page="thankyou">Thankyou</a>
+      <a href="form.html" data-nav-page="form">Lead Form</a>
+      <a href="buttons.html" data-nav-page="buttons">Buttons</a>
+      <a href="builder.html" data-nav-page="builder">Builder Mode</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="panel">
+      <h1 class="page-title">버튼 추적 실습</h1>
+      <p class="small">
+        아래 버튼은 id/data-attribute가 고정되어 있습니다. GTM Click Trigger 조건을 바로 실습할 수 있습니다.
+      </p>
+    </section>
+
+    <section class="layout-grid" style="margin-top:14px;">
+      <div class="trigger-row">
+        <button id="btnCtaPrimary" class="btn" data-track-type="cta" type="button">CTA Primary</button>
+        <div class="small">추천 트리거: Click ID equals <code>btnCtaPrimary</code></div>
+      </div>
+      <div class="trigger-row">
+        <button id="btnCtaSecondary" class="btn secondary" data-track-type="cta" type="button">CTA Secondary</button>
+        <div class="small">추천 트리거: Click ID equals <code>btnCtaSecondary</code></div>
+      </div>
+      <div class="trigger-row">
+        <a id="btnCall" class="btn secondary" href="tel:+820212345678" data-track-type="call">전화 연결</a>
+        <div class="small">추천 트리거: Click ID equals <code>btnCall</code></div>
+      </div>
+      <div class="trigger-row">
+        <a id="btnDownload" class="btn secondary" download="lab-guide.txt" href="data:text/plain;charset=utf-8,GA4%20GTM%20lab%20download%20sample" data-track-type="download">파일 다운로드</a>
+        <div class="small">추천 트리거: Click ID equals <code>btnDownload</code></div>
+      </div>
+      <div class="trigger-row">
+        <a id="btnExternal" class="btn secondary" href="https://example.com" target="_blank" rel="noopener" data-track-type="outbound">외부 링크</a>
+        <div class="small">추천 트리거: Click ID equals <code>btnExternal</code></div>
+      </div>
+      <div class="trigger-row">
+        <button id="btnOpenModal" class="btn accent" type="button" data-track-type="modal">모달 열기</button>
+        <div class="small">추천 트리거: Click ID equals <code>btnOpenModal</code></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="buttonModal" class="modal-backdrop" aria-hidden="true">
+    <div class="modal">
+      <h3>버튼 실습 모달</h3>
+      <p class="small">모달 오픈/클로즈 클릭을 별도 이벤트로 추적할 수 있습니다.</p>
+      <div class="btn-row">
+        <button id="btnCloseButtonModal" class="btn secondary" type="button">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    LAB.initCommon("buttons");
+
+    var modal = document.getElementById("buttonModal");
+    document.getElementById("btnOpenModal").addEventListener("click", function () {
+      modal.classList.add("open");
+      modal.setAttribute("aria-hidden", "false");
+    });
+    document.getElementById("btnCloseButtonModal").addEventListener("click", function () {
+      modal.classList.remove("open");
+      modal.setAttribute("aria-hidden", "true");
+    });
+  </script>
+</body>
+</html>
