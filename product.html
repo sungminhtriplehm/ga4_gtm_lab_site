@@ -12,6 +12,14 @@
   </script>
 
   <!-- GTM HEAD SNIPPET: Google Tag Manager에서 복사한 <script>...</script>를 여기 붙여넣으세요 -->
+   
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-TTWSJGDJ');</script>
+  <!-- End Google Tag Manager -->
 
 </head>
 <body>
@@ -67,6 +75,7 @@
 
     <div class="small" style="margin-top:10px;">
       이 페이지 로드 시 <code class="inline">view_item</code>가 전송됩니다.
+      <br/>또한 <strong>장바구니 담기</strong>는 (실습용) 페이지에서 <code class="inline">dataLayer.push</code>를 하지 않으므로, GTM의 <code class="inline">맞춤 HTML</code>로 <code class="inline">add_to_cart</code>를 구현해보세요.
       메인에서 넘어온 경우(쿼리스트링 포함) <code class="inline">select_item</code>도 함께 전송됩니다.
     </div>
   </section>
@@ -143,19 +152,32 @@
       ecommerce: { items: [item] }
     });
 
-    document.getElementById("btnAdd").onclick = () => {
+    
+    // ---------------- 맞춤 HTML 실습용 데이터(버튼 dataset) ----------------
+    // GTM "맞춤 HTML" 태그에서 아래 dataset/DOM 값을 읽어 add_to_cart payload를 만들 수 있습니다.
+    const btnAdd = document.getElementById("btnAdd");
+    btnAdd.dataset.sku = product.item_id;
+    btnAdd.dataset.name = product.item_name;
+    btnAdd.dataset.category = product.item_category;
+    btnAdd.dataset.brand = product.item_brand;
+    btnAdd.dataset.regularPrice = String(product.regular_price);
+    btnAdd.dataset.memberPrice = String(product.member_price);
+    // 현재 표시 가격(회원가 토글에 따라 바뀜)
+    btnAdd.dataset.price = String(item.price);
+    btnAdd.dataset.discount = String(item.discount || 0);
+    btnAdd.dataset.variant = String(item.item_variant || "");
+    btnAdd.dataset.priceType = String(price_type);
+    btnAdd.dataset.currency = String(CURRENCY);
+
+document.getElementById("btnAdd").onclick = () => {
       const qty = Math.max(1, Number(document.getElementById("qty").value || 1));
       const { item: cartItem, price_type: pt } = buildItem(product, qty);
       addToCart(cartItem);
 
-      pushEcomEvent("add_to_cart", {
-        currency: CURRENCY,
-        value: calcValue([cartItem]),
-        price_type: pt,
-        ecommerce: { items: [cartItem] }
-      });
+      // (실습용) 이 페이지는 add_to_cart를 dataLayer로 직접 push하지 않습니다.
+      // GTM에서 "맞춤 HTML" 태그로 add_to_cart 이벤트를 직접 만들어 push해보세요.
 
-      alert("장바구니에 담았습니다. (add_to_cart 전송)");
+      alert("장바구니에 담았습니다. (add_to_cart는 GTM 맞춤 HTML에서 전송 실습)");
     };
   }
 

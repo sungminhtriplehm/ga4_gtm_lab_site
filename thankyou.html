@@ -12,6 +12,14 @@
   </script>
 
   <!-- GTM HEAD SNIPPET: Google Tag Manager에서 복사한 <script>...</script>를 여기 붙여넣으세요 -->
+   
+  <!-- Google Tag Manager -->
+  <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+  new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+  j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+  'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+  })(window,document,'script','dataLayer','GTM-TTWSJGDJ');</script>
+  <!-- End Google Tag Manager -->
 
 </head>
 <body>
@@ -45,9 +53,13 @@
 <main class="container">
   <section class="panel" id="panel">
     <h2 style="margin:0 0 8px;">구매 완료 🎉</h2>
-    <div class="small">이 페이지 로드 시 (최초 1회) <code class="inline">purchase</code> 이벤트가 전송됩니다.</div>
+    <div class="small">이 페이지는 (실습용) <code class="inline">purchase</code> 이벤트를 <strong>자동 전송하지 않습니다</strong>.<br/>GTM에서 <code class="inline">맞춤 HTML</code> 태그로 <code class="inline">dataLayer.push</code>를 직접 구현해보세요.</div>
 
     <div id="msg" style="margin-top:10px;"></div>
+
+    <!-- GTM 맞춤 HTML 실습용: 주문 정보를 JSON으로 노출 -->
+    <script id="order-json" type="application/json"></script>
+
 
     <div class="row" style="margin-top:12px;">
       <a class="btn" href="index.html">홈으로</a>
@@ -56,7 +68,8 @@
 
     <div class="small" style="margin-top:10px;">
       ⚠️ 새로고침하면 구매 완료 페이지가 다시 로드됩니다. 중복 구매 이벤트를 막기 위해
-      <code class="inline">transaction_id</code>를 사용하고, 로컬에 "전송 완료" 체크를 저장합니다.
+      <code class="inline">transaction_id</code>를 사용합니다.
+      <br/>(이번 실습에서는 GTM 맞춤 HTML에서 "전송 완료" 체크를 직접 구현해보세요)
     </div>
   </section>
 </main>
@@ -100,22 +113,21 @@
       <div class="small" style="margin-top:10px;">구매 이벤트가 DebugView/Realtime에 들어오는지 확인해보세요.</div>
     `;
 
-    // purchase (한 번만)
-    if (!hasPurchaseSent(order.transaction_id)) {
-      pushEcomEvent("purchase", {
-        transaction_id: order.transaction_id,
-        currency: order.currency,
-        value: order.value,
-        tax: order.tax,
-        shipping: order.shipping,
-        ecommerce: { items: order.items }
-      });
+    // ---------------- 맞춤 HTML 실습용 ----------------
+    // 이 페이지는 purchase 이벤트를 dataLayer로 직접 push하지 않습니다.
+    // GTM의 "맞춤 HTML" 태그에서 아래 두 가지 중 하나를 읽어 purchase payload를 만들어 보낼 수 있습니다.
+    // 1) window.labOrderForTracking  (권장)
+    // 2) <script id="order-json" type="application/json"> 안의 JSON
+    //
+    // 또한 실무에서는 새로고침/중복 전송을 막기 위해 transaction_id 기준으로 전송 여부를 저장합니다.
+    // (GTM 맞춤 HTML에서 localStorage/sessionStorage로 구현해보세요)
+    window.labOrderForTracking = order;
+    const orderEl = document.getElementById("order-json");
+    if (orderEl) orderEl.textContent = JSON.stringify(order);
 
-      markPurchaseSent(order.transaction_id);
+    // 실제 사이트라면 구매 완료 이후 장바구니 비우는 로직이 일반적
+    clearCart();
 
-      // 실제 사이트라면 구매 완료 이후 장바구니 비우는 로직이 일반적
-      clearCart();
-    }
   }
 
   render();
