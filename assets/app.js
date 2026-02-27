@@ -39,11 +39,27 @@
   }
 
   function safeJsonParse(value, fallback) {
+    if (value === null || value === undefined || value === "") {
+      return fallback;
+    }
     try {
-      return JSON.parse(value);
+      var parsed = JSON.parse(value);
+      return parsed === null ? fallback : parsed;
     } catch (err) {
       return fallback;
     }
+  }
+
+  function normalizeArray(value, fallback) {
+    if (Array.isArray(value)) return value;
+    return Array.isArray(fallback) ? fallback : [];
+  }
+
+  function readArrayFromStorage(store, key) {
+    var parsed = safeJsonParse(store.getItem(key), []);
+    if (Array.isArray(parsed)) return parsed;
+    store.setItem(key, "[]");
+    return [];
   }
 
   function deepClone(obj) {
@@ -137,8 +153,7 @@
   }
 
   function getDlHistory() {
-    var raw = sessionStore.getItem(STORAGE.DL_HISTORY);
-    return safeJsonParse(raw, []);
+    return readArrayFromStorage(sessionStore, STORAGE.DL_HISTORY);
   }
 
   function saveDlHistory(history) {
@@ -155,7 +170,7 @@
   }
 
   function recordPush(payload) {
-    var history = getDlHistory();
+    var history = normalizeArray(getDlHistory(), []);
     history.unshift({
       pushed_at: new Date().toISOString(),
       payload: deepClone(payload)
@@ -267,8 +282,7 @@
   }
 
   function getCart() {
-    var raw = localStore.getItem(STORAGE.CART);
-    return safeJsonParse(raw, []);
+    return readArrayFromStorage(localStore, STORAGE.CART);
   }
 
   function setCart(cart) {
@@ -282,13 +296,14 @@
   }
 
   function getCartCount() {
-    return getCart().reduce(function (count, item) {
+    var cart = normalizeArray(getCart(), []);
+    return cart.reduce(function (count, item) {
       return count + Number(item.quantity || 0);
     }, 0);
   }
 
   function addToCart(item) {
-    var cart = getCart();
+    var cart = normalizeArray(getCart(), []);
     var key = item.item_id + "::" + (item.item_variant || "");
     var index = -1;
     for (var i = 0; i < cart.length; i += 1) {
@@ -434,7 +449,7 @@
     var checkbox = document.getElementById("labDebugConsole");
     if (!modeEl || !cartEl || !historyEl || !checkbox) return;
 
-    var cart = getCart();
+    var cart = normalizeArray(getCart(), []);
     modeEl.textContent = JSON.stringify({ mode: getMode() }, null, 2);
     cartEl.textContent = JSON.stringify({
       count: getCartCount(),

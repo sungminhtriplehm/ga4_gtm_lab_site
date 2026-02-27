@@ -60,6 +60,12 @@
     var datasetPreview = document.getElementById("datasetPreview");
     var allProducts = LAB.getProducts();
 
+    function parseQuantity(rawValue) {
+      var parsed = Number(rawValue);
+      if (!Number.isFinite(parsed) || parsed < 1) return 1;
+      return Math.floor(parsed);
+    }
+
     function renderProductLinks(currentId) {
       return (
         '<div class="panel" style="margin-bottom:10px;">' +
@@ -79,6 +85,7 @@
     } else {
       var quantityInputId = "qtyInput";
       var buttonId = "btnAddToCart";
+      var goCartButtonId = "btnGoCart";
       var item = LAB.buildItem(product, 1);
 
       productBox.innerHTML =
@@ -96,27 +103,24 @@
         '  <div class="panel">' +
         '    <div class="field">' +
         '      <label for="' + quantityInputId + '">수량</label>' +
-        '      <input id="' + quantityInputId + '" type="number" min="1" value="1" />' +
+        '      <input id="' + quantityInputId + '" type="number" min="1" step="1" value="1" />' +
         '    </div>' +
         '    <div class="btn-row" style="margin-top:10px;">' +
         '      <button id="' + buttonId + '" class="btn" type="button">장바구니 담기 (push 누락)</button>' +
-        '      <a class="btn secondary" href="cart.html">장바구니로 이동</a>' +
+        '      <button id="' + goCartButtonId + '" class="btn secondary" type="button">장바구니로 이동</button>' +
         '    </div>' +
-        '    <p id="productStatus" class="small" style="margin-top:10px;">버튼 클릭 시 장바구니에만 반영됩니다.</p>' +
+        '    <p id="productStatus" class="small" style="margin-top:10px;">버튼 클릭 시 장바구니에 반영됩니다.</p>' +
         '  </div>' +
         '</div>';
 
-      LAB.pushEcomEvent("view_item", {
-        currency: LAB.currency,
-        value: LAB.calcValue([item]),
-        ecommerce: { items: [item] }
-      });
-
       var addButton = document.getElementById(buttonId);
+      var goCartButton = document.getElementById(goCartButtonId);
       var qtyInput = document.getElementById(quantityInputId);
+      var statusEl = document.getElementById("productStatus");
 
       function syncDataset() {
-        var qty = Math.max(1, Number(qtyInput.value || 1));
+        var qty = parseQuantity(qtyInput.value || 1);
+        qtyInput.value = String(qty);
         var dataset = {
           sku: product.item_id,
           name: product.item_name,
@@ -137,14 +141,34 @@
       }
 
       qtyInput.addEventListener("input", syncDataset);
+      qtyInput.addEventListener("change", syncDataset);
       syncDataset();
 
       addButton.addEventListener("click", function () {
-        var qty = Math.max(1, Number(qtyInput.value || 1));
-        LAB.addToCart(LAB.buildItem(product, qty));
-        document.getElementById("productStatus").textContent =
-          '장바구니에 ' + qty + '개 담겼습니다. (add_to_cart push는 GTM에서 처리)';
+        var qty = parseQuantity(qtyInput.value || 1);
+        qtyInput.value = String(qty);
+        try {
+          LAB.addToCart(LAB.buildItem(product, qty));
+          LAB.updateCartBadge();
+          statusEl.textContent = '장바구니에 ' + qty + '개 담겼습니다. (add_to_cart push는 GTM에서 처리)';
+        } catch (err) {
+          statusEl.textContent = '장바구니 담기 실패: 브라우저 저장소 상태를 확인하세요.';
+        }
       });
+
+      goCartButton.addEventListener("click", function () {
+        window.location.href = "cart.html";
+      });
+
+      try {
+        LAB.pushEcomEvent("view_item", {
+          currency: LAB.currency,
+          value: LAB.calcValue([item]),
+          ecommerce: { items: [item] }
+        });
+      } catch (err) {
+        statusEl.textContent = 'view_item push 실패: dataLayer 상태를 확인하세요. 장바구니 기능은 계속 사용할 수 있습니다.';
+      }
     }
   </script>
 </body>

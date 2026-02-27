@@ -67,6 +67,12 @@
         <div class="small">추천 트리거: Click ID equals <code>btnOpenModal</code></div>
       </div>
     </section>
+
+    <section class="panel" style="margin-top:14px;">
+      <h2 class="page-title">실시간 버튼 이벤트 로그</h2>
+      <p id="buttonEventStatus" class="small">버튼을 클릭하면 이 영역에 즉시 이벤트 결과가 표시됩니다.</p>
+      <pre id="buttonEventLog">[]</pre>
+    </section>
   </main>
 
   <div id="buttonModal" class="modal-backdrop" aria-hidden="true">
@@ -85,14 +91,113 @@
     LAB.initCommon("buttons");
 
     var modal = document.getElementById("buttonModal");
+    var statusEl = document.getElementById("buttonEventStatus");
+    var logEl = document.getElementById("buttonEventLog");
+    var eventLog = [];
+
+    function renderLog() {
+      logEl.textContent = JSON.stringify(eventLog, null, 2);
+    }
+
+    function logButtonEvent(eventName, params) {
+      var payload = params || {};
+      try {
+        LAB.pushEvent(eventName, payload);
+        statusEl.textContent = "전송 성공: " + eventName + " (" + (payload.button_id || "unknown") + ")";
+      } catch (err) {
+        statusEl.textContent = "전송 실패: " + eventName + " (" + err.message + ")";
+      }
+
+      eventLog.unshift({
+        at: new Date().toISOString(),
+        event: eventName,
+        params: payload
+      });
+      if (eventLog.length > 30) {
+        eventLog = eventLog.slice(0, 30);
+      }
+      renderLog();
+    }
+
+    document.getElementById("btnCtaPrimary").addEventListener("click", function () {
+      logButtonEvent("cta_click", {
+        button_id: "btnCtaPrimary",
+        button_label: "CTA Primary",
+        button_type: "cta"
+      });
+    });
+
+    document.getElementById("btnCtaSecondary").addEventListener("click", function () {
+      logButtonEvent("cta_click", {
+        button_id: "btnCtaSecondary",
+        button_label: "CTA Secondary",
+        button_type: "cta"
+      });
+    });
+
+    document.getElementById("btnCall").addEventListener("click", function (event) {
+      event.preventDefault();
+      var href = this.getAttribute("href");
+      logButtonEvent("phone_click", {
+        button_id: "btnCall",
+        button_label: "전화 연결",
+        button_type: "call",
+        link_url: href
+      });
+      window.location.href = href;
+    });
+
+    document.getElementById("btnDownload").addEventListener("click", function (event) {
+      event.preventDefault();
+      var href = this.getAttribute("href");
+      var filename = this.getAttribute("download") || "download.txt";
+      logButtonEvent("file_download_click", {
+        button_id: "btnDownload",
+        button_label: "파일 다운로드",
+        button_type: "download",
+        file_name: filename
+      });
+      var tempLink = document.createElement("a");
+      tempLink.href = href;
+      tempLink.download = filename;
+      document.body.appendChild(tempLink);
+      tempLink.click();
+      document.body.removeChild(tempLink);
+    });
+
+    document.getElementById("btnExternal").addEventListener("click", function (event) {
+      event.preventDefault();
+      var href = this.getAttribute("href");
+      logButtonEvent("outbound_click", {
+        button_id: "btnExternal",
+        button_label: "외부 링크",
+        button_type: "outbound",
+        link_url: href
+      });
+      window.open(href, "_blank", "noopener");
+    });
+
     document.getElementById("btnOpenModal").addEventListener("click", function () {
+      logButtonEvent("modal_open", {
+        button_id: "btnOpenModal",
+        button_label: "모달 열기",
+        button_type: "modal"
+      });
       modal.classList.add("open");
       modal.setAttribute("aria-hidden", "false");
     });
+
     document.getElementById("btnCloseButtonModal").addEventListener("click", function () {
+      logButtonEvent("modal_close", {
+        button_id: "btnCloseButtonModal",
+        button_label: "모달 닫기",
+        button_type: "modal"
+      });
       modal.classList.remove("open");
       modal.setAttribute("aria-hidden", "true");
     });
+
+    renderLog();
   </script>
 </body>
 </html>
