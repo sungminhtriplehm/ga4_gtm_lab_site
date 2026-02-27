@@ -14,6 +14,7 @@
 - `form.html`: 폼 추적 실습
 - `buttons.html`: 버튼 클릭 추적 실습 + 실시간 이벤트 로그
 - `builder.html`: 플랫폼 DOM 구조 참고 페이지
+- `gtm-setup.html`: GTM 전체 스니펫 1회 설정/초기화 페이지
 
 ## 전자상거래 이벤트 발생 지점
 
@@ -68,14 +69,17 @@
 
 ## GTM 최소 셋업 체크리스트
 
-1. 모든 페이지에 GTM 스니펫 삽입
-   - `<head>`: `<!-- GTM_HEAD_SLOT -->`
-   - `<body>` 시작 직후: `<!-- GTM_BODY_SLOT -->`
-2. Variables (Data Layer Variable)
+1. `gtm-setup.html`에서 공식 GTM 전체 스니펫(head + noscript) 입력 후 `저장/적용`
+   - `googletagmanager.com` 도메인만 허용
+   - 저장 후 모든 페이지에서 자동 주입
+2. 필요 시 `gtm-setup.html`의 `초기화` 버튼으로 원복
+   - localStorage 설정 삭제
+   - 주입된 GTM script/iframe 제거
+3. Variables (Data Layer Variable)
    - `event`, `ecommerce.items`, `value`, `currency`, `transaction_id`
-3. Triggers
+4. Triggers
    - Page View, Click, Form Submission, Custom Event
-4. Tags
+5. Tags
    - GA4 Event 태그(표준 이벤트명)
    - Custom HTML 태그(누락된 `add_to_cart`, `purchase`, `form_submit` push)
 
@@ -87,9 +91,25 @@
 4. `buttons.html`에서 버튼 클릭 -> `#buttonEventStatus`, `#buttonEventLog` 갱신 확인
 5. GTM Preview + GA4 DebugView에서 이벤트/파라미터 확인
 
+## GTM Setup 페이지 동작 요약
+
+- 저장 키: `localStorage.lab_gtm_config_v1`
+- 저장 데이터:
+  - `container_id`
+  - `head_script_src`
+  - `body_iframe_src`
+  - `raw_snippet`
+  - `saved_at`
+- 자동 적용:
+  - head: `assets/gtm-head-bootstrap.js`가 `gtm.js` script 주입
+  - body: `LAB.applyGtmBodySnippet()`가 noscript iframe 주입
+- 주의:
+  - 이 기능은 브라우저 저장소(localStorage) 기준이므로 브라우저/프로필별로 설정이 다를 수 있음
+
 ## 참고
 
 - 모든 HTML 페이지는 아래 두 슬롯을 포함합니다.
   - `<!-- GTM_HEAD_SLOT -->`
   - `<!-- GTM_BODY_SLOT -->`
 - 이벤트명은 GA4 표준 이벤트명을 사용합니다.
+- GTM 설정 변경은 `gtm-setup.html`에서 가능하며, 기능 반영 이후에는 추가 git push 없이 운영 가능합니다.

@@ -1,0 +1,135 @@
+﻿<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GA4 + GTM Lab | GTM Setup</title>
+  <link rel="stylesheet" href="assets/style.css" />
+  <script>
+    window.dataLayer = window.dataLayer || [];
+  </script>
+  <script src="assets/gtm-head-bootstrap.js"></script>
+  <!-- GTM_HEAD_SLOT -->
+</head>
+<body>
+  <!-- GTM_BODY_SLOT -->
+
+  <header class="site-header">
+    <div class="container topbar">
+      <a class="brand" href="index.html">GA4 + GTM Static Lab Shop</a>
+      <div class="top-controls">
+        <span class="mode-chip">Tracking: <strong data-current-mode>standard</strong></span>
+        <a class="cart-link" href="cart.html">Cart <span class="badge" data-cart-count>0</span></a>
+      </div>
+    </div>
+    <nav class="container page-nav">
+      <a href="index.html" data-nav-page="index">Home</a>
+      <a href="product-sku-001.html" data-nav-page="product">Product</a>
+      <a href="cart.html" data-nav-page="cart">Cart</a>
+      <a href="checkout.html" data-nav-page="checkout">Checkout</a>
+      <a href="thankyou.html" data-nav-page="thankyou">Thankyou</a>
+      <a href="form.html" data-nav-page="form">Lead Form</a>
+      <a href="buttons.html" data-nav-page="buttons">Buttons</a>
+      <a href="builder.html" data-nav-page="builder">Platform Ref</a>
+      <a href="gtm-setup.html" data-nav-page="gtm-setup">GTM Setup</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <section class="panel">
+      <h1 class="page-title">GTM 1회 삽입 설정</h1>
+      <p class="small">
+        공식 GTM 전체 스니펫(head + noscript)을 그대로 붙여넣고 저장하세요.
+        저장 후부터는 코드 수정이나 git push 없이 이 브라우저에서 자동 적용됩니다.
+      </p>
+      <p class="small">
+        검증 정책: <code>googletagmanager.com</code> 도메인만 허용됩니다.
+      </p>
+
+      <div class="field" style="margin-top:12px;">
+        <label for="gtmSnippetInput">전체 GTM 스니펫 입력</label>
+        <textarea id="gtmSnippetInput" rows="14" placeholder="<!-- Google Tag Manager --> ... <!-- End Google Tag Manager -->"></textarea>
+      </div>
+
+      <div class="btn-row" style="margin-top:12px;">
+        <button id="btnSaveGtm" class="btn accent" type="button">저장/적용</button>
+        <button id="btnInspectGtm" class="btn secondary" type="button">현재 설정 확인</button>
+        <button id="btnClearGtm" class="btn danger" type="button">초기화</button>
+      </div>
+
+      <p id="gtmSetupStatus" class="small" style="margin-top:10px;">저장된 GTM 설정이 없습니다.</p>
+    </section>
+
+    <section class="panel" style="margin-top:14px;">
+      <h2 class="page-title">현재 GTM 설정 정보</h2>
+      <pre id="gtmConfigPreview">{}</pre>
+    </section>
+  </main>
+
+  <script src="assets/data.js"></script>
+  <script src="assets/app.js"></script>
+  <script>
+    LAB.initCommon("gtm-setup");
+
+    var inputEl = document.getElementById("gtmSnippetInput");
+    var statusEl = document.getElementById("gtmSetupStatus");
+    var previewEl = document.getElementById("gtmConfigPreview");
+
+    function setStatus(message, isError) {
+      statusEl.textContent = message;
+      statusEl.style.color = isError ? "#ad3f2f" : "";
+    }
+
+    function renderCurrentConfig() {
+      var config = LAB.getGtmConfig();
+      if (!config) {
+        previewEl.textContent = "{}";
+        setStatus("저장된 GTM 설정이 없습니다.", false);
+        return;
+      }
+
+      previewEl.textContent = JSON.stringify({
+        container_id: config.container_id,
+        head_script_src: config.head_script_src,
+        body_iframe_src: config.body_iframe_src,
+        saved_at: config.saved_at
+      }, null, 2);
+
+      if (!inputEl.value.trim() && config.raw_snippet) {
+        inputEl.value = config.raw_snippet;
+      }
+      setStatus("현재 설정이 로드되었습니다. container_id: " + config.container_id, false);
+    }
+
+    document.getElementById("btnSaveGtm").addEventListener("click", function () {
+      try {
+        var parsed = LAB.validateAndParseGtmSnippet(inputEl.value);
+        LAB.saveGtmConfig(parsed);
+        LAB.applyGtmBodySnippet();
+        renderCurrentConfig();
+        setStatus("저장 완료. 모든 페이지에서 새로고침 시 자동 적용됩니다.", false);
+      } catch (err) {
+        setStatus("저장 실패: " + err.message, true);
+      }
+    });
+
+    document.getElementById("btnInspectGtm").addEventListener("click", function () {
+      renderCurrentConfig();
+    });
+
+    document.getElementById("btnClearGtm").addEventListener("click", function () {
+      LAB.clearGtmConfig();
+      inputEl.value = "";
+      previewEl.textContent = "{}";
+      setStatus("초기화 완료. 기본 상태로 복귀합니다.", false);
+      window.setTimeout(function () {
+        window.location.reload();
+      }, 150);
+    });
+
+    renderCurrentConfig();
+  </script>
+</body>
+</html>
+
+

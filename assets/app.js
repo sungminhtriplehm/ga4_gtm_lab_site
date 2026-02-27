@@ -6,11 +6,14 @@
     PENDING_ORDER: "lab_pending_order",
     LAST_ORDER: "lab_last_order",
     DEBUG_CONSOLE: "lab_debug_console",
-    DL_HISTORY: "lab_dl_history"
+    DL_HISTORY: "lab_dl_history",
+    GTM_CONFIG: "lab_gtm_config_v1"
   };
 
   var DEFAULT_MODE = "standard";
   var CURRENCY = (window.LAB_DATA && window.LAB_DATA.currency) || "KRW";
+  var GTM_HEAD_SCRIPT_ID = "labGtmHeadScript";
+  var GTM_BODY_SNIPPET_ID = "labGtmBodySnippet";
 
   function assign(target) {
     var to = target || {};
@@ -60,6 +63,39 @@
     if (Array.isArray(parsed)) return parsed;
     store.setItem(key, "[]");
     return [];
+  }
+
+  function normalizeUrl(url) {
+    var text = String(url || "").trim();
+    if (!text) return "";
+    if (text.indexOf("//") === 0) {
+      text = "https:" + text;
+    }
+    return text;
+  }
+
+  function isAllowedGtmScriptSrc(src) {
+    return /^https?:\/\/(www\.)?googletagmanager\.com\/gtm\.js(\?|$)/i.test(normalizeUrl(src));
+  }
+
+  function isAllowedGtmIframeSrc(src) {
+    return /^https?:\/\/(www\.)?googletagmanager\.com\/ns\.html(\?|$)/i.test(normalizeUrl(src));
+  }
+
+  function extractContainerIdFromUrl(url) {
+    var normalized = normalizeUrl(url);
+    var match = normalized.match(/[?&]id=(GTM-[A-Z0-9]+)/i);
+    return match ? String(match[1]).toUpperCase() : null;
+  }
+
+  function extractAttributeUrls(html, tagName, attrName) {
+    var values = [];
+    var pattern = new RegExp("<" + tagName + "[^>]*\\s" + attrName + "\\s*=\\s*[\"']([^\"']+)[\"'][^>]*>", "gi");
+    var match;
+    while ((match = pattern.exec(html))) {
+      values.push(normalizeUrl(match[1]));
+    }
+    return values;
   }
 
   function deepClone(obj) {
@@ -129,6 +165,173 @@
 
   var localStore = createStorageAdapter("local");
   var sessionStore = createStorageAdapter("session");
+
+  function isValidGtmConfig(config) {
+    if (!config || typeof config !== "object") return false;
+    if (!/^GTM-[A-Z0-9]+$/.test(String(config.container_id || "").toUpperCase())) return false;
+    if (!isAllowedGtmScriptSrc(config.head_script_src || "")) return false;
+    if (!isAllowedGtmIframeSrc(config.body_iframe_src || "")) return false;
+
+    var containerId = String(config.container_id || "").toUpperCase();
+    var scriptId = extractContainerIdFromUrl(config.head_script_src || "");
+    var iframeId = extractContainerIdFromUrl(config.body_iframe_src || "");
+    if (scriptId && scriptId !== containerId) return false;
+    if (iframeId && iframeId !== containerId) return false;
+
+    return true;
+  }
+
+  function getGtmConfig() {
+    var raw = localStore.getItem(STORAGE.GTM_CONFIG);
+    var parsed = safeJsonParse(raw, null);
+    if (!isValidGtmConfig(parsed)) {
+      if (raw !== null) {
+        localStore.removeItem(STORAGE.GTM_CONFIG);
+      }
+      return null;
+    }
+    return parsed;
+  }
+
+  function saveGtmConfig(config) {
+    if (!isValidGtmConfig(config)) {
+      throw new Error("유효한 GTM 설정 형식이 아닙니다.");
+    }
+    localStore.setItem(STORAGE.GTM_CONFIG, JSON.stringify(config));
+    return config;
+  }
+
+  function clearGtmConfig() {
+    localStore.removeItem(STORAGE.GTM_CONFIG);
+
+    var bodySnippet = document.getElementById(GTM_BODY_SNIPPET_ID);
+    if (bodySnippet && bodySnippet.parentNode) {
+      bodySnippet.parentNode.removeChild(bodySnippet);
+    }
+
+    var headScript = document.getElementById(GTM_HEAD_SCRIPT_ID);
+    if (headScript && headScript.parentNode) {
+      headScript.parentNode.removeChild(headScript);
+    }
+
+    window.__LAB_GTM_HEAD_INJECTED = false;
+    window.__LAB_GTM_BODY_INJECTED = false;
+  }
+
+  function validateAndParseGtmSnippet(rawSnippet) {
+    var raw = String(rawSnippet || "").trim();
+    if (!raw) {
+      throw new Error("GTM 스니펫을 입력하세요.");
+    }
+
+    if (raw.indexOf("googletagmanager.com/gtm.js") === -1) {
+      throw new Error("head 스니펫에서 googletagmanager.com/gtm.js를 찾을 수 없습니다.");
+    }
+    if (raw.indexOf("googletagmanager.com/ns.html") === -1) {
+      throw new Error("body 스니펫에서 googletagmanager.com/ns.html을 찾을 수 없습니다.");
+    }
+
+    var ids = raw.match(/GTM-[A-Z0-9]+/gi) || [];
+    var uniqueIds = [];
+    for (var i = 0; i < ids.length; i += 1) {
+      var normalizedId = String(ids[i]).toUpperCase();
+      if (uniqueIds.indexOf(normalizedId) === -1) {
+        uniqueIds.push(normalizedId);
+      }
+    }
+
+    if (uniqueIds.length !== 1) {
+      throw new Error("GTM 컨테이너 ID는 1개만 포함되어야 합니다.");
+    }
+    var containerId = uniqueIds[0];
+
+    var scriptSrcs = extractAttributeUrls(raw, "script", "src");
+    for (var s = 0; s < scriptSrcs.length; s += 1) {
+      if (!isAllowedGtmScriptSrc(scriptSrcs[s])) {
+        throw new Error("GTM 외 script src는 허용되지 않습니다: " + scriptSrcs[s]);
+      }
+    }
+
+    var iframeSrcs = extractAttributeUrls(raw, "iframe", "src");
+    for (var f = 0; f < iframeSrcs.length; f += 1) {
+      if (!isAllowedGtmIframeSrc(iframeSrcs[f])) {
+        throw new Error("GTM 외 iframe src는 허용되지 않습니다: " + iframeSrcs[f]);
+      }
+    }
+
+    var explicitScriptSrc = scriptSrcs.length ? scriptSrcs[0] : "";
+    var explicitIframeSrc = iframeSrcs.length ? iframeSrcs[0] : "";
+    var scriptIdFromSrc = explicitScriptSrc ? extractContainerIdFromUrl(explicitScriptSrc) : null;
+    var iframeIdFromSrc = explicitIframeSrc ? extractContainerIdFromUrl(explicitIframeSrc) : null;
+
+    if (scriptIdFromSrc && scriptIdFromSrc !== containerId) {
+      throw new Error("script src의 GTM ID와 스니펫 ID가 일치하지 않습니다.");
+    }
+    if (iframeIdFromSrc && iframeIdFromSrc !== containerId) {
+      throw new Error("iframe src의 GTM ID와 스니펫 ID가 일치하지 않습니다.");
+    }
+
+    var headScriptSrc = explicitScriptSrc || ("https://www.googletagmanager.com/gtm.js?id=" + encodeURIComponent(containerId));
+    var bodyIframeSrc = explicitIframeSrc || ("https://www.googletagmanager.com/ns.html?id=" + encodeURIComponent(containerId));
+
+    if (!isAllowedGtmScriptSrc(headScriptSrc)) {
+      throw new Error("head script URL이 허용 형식이 아닙니다.");
+    }
+    if (!isAllowedGtmIframeSrc(bodyIframeSrc)) {
+      throw new Error("body iframe URL이 허용 형식이 아닙니다.");
+    }
+
+    return {
+      container_id: containerId,
+      head_script_src: normalizeUrl(headScriptSrc),
+      body_iframe_src: normalizeUrl(bodyIframeSrc),
+      raw_snippet: raw,
+      saved_at: new Date().toISOString()
+    };
+  }
+
+  function applyGtmBodySnippet() {
+    var config = getGtmConfig();
+    var existing = document.getElementById(GTM_BODY_SNIPPET_ID);
+
+    if (!config) {
+      if (existing && existing.parentNode) {
+        existing.parentNode.removeChild(existing);
+      }
+      return false;
+    }
+
+    if (existing) {
+      return true;
+    }
+
+    if (document.querySelector('noscript iframe[src*="googletagmanager.com/ns.html"]')) {
+      window.__LAB_GTM_BODY_INJECTED = true;
+      return true;
+    }
+
+    var body = document.body;
+    if (!body) return false;
+
+    var noscript = document.createElement("noscript");
+    noscript.id = GTM_BODY_SNIPPET_ID;
+
+    var iframe = document.createElement("iframe");
+    iframe.src = config.body_iframe_src;
+    iframe.height = "0";
+    iframe.width = "0";
+    iframe.style.display = "none";
+    iframe.style.visibility = "hidden";
+    noscript.appendChild(iframe);
+
+    if (body.firstChild) {
+      body.insertBefore(noscript, body.firstChild);
+    } else {
+      body.appendChild(noscript);
+    }
+    window.__LAB_GTM_BODY_INJECTED = true;
+    return true;
+  }
 
   function getMode() {
     return DEFAULT_MODE;
@@ -462,6 +665,7 @@
   }
 
   function initCommon(pageId) {
+    applyGtmBodySnippet();
     bindModeSelectors();
     syncModeSelectors();
     syncModeBadges();
@@ -499,6 +703,11 @@
     saveLastOrder: saveLastOrder,
     getLastOrder: getLastOrder,
     clearPendingOrder: clearPendingOrder,
+    getGtmConfig: getGtmConfig,
+    saveGtmConfig: saveGtmConfig,
+    clearGtmConfig: clearGtmConfig,
+    applyGtmBodySnippet: applyGtmBodySnippet,
+    validateAndParseGtmSnippet: validateAndParseGtmSnippet,
     getQueryParam: getQueryParam,
     initCommon: initCommon,
     renderDebugPanel: renderDebugPanel,
