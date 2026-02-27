@@ -88,6 +88,7 @@ python -m http.server 5500
   - `view_item`
 - `cart.html`
   - `view_cart`
+  - `remove_from_cart` (장바구니 비우기 클릭)
   - `begin_checkout`
 - `checkout.html`
   - `add_shipping_info`
@@ -132,7 +133,7 @@ python -m http.server 5500
 
 실습 초반에는 다음 이벤트를 우선 허용:
 
-- `view_item_list`, `select_item`, `view_item`, `add_to_cart`
+- `view_item_list`, `select_item`, `view_item`, `add_to_cart`, `remove_from_cart`
 - `view_cart`, `begin_checkout`, `add_shipping_info`, `add_payment_info`, `purchase`
 
 ## 7. 단계별 실습 시나리오

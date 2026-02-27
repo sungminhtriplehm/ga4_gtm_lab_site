@@ -120,8 +120,25 @@
       });
 
       document.getElementById("btnClearCart").addEventListener("click", function () {
-        LAB.clearCart();
-        renderCart();
+        var currentCart = LAB.getCart();
+        var status = document.getElementById("cartStatus");
+        if (!currentCart.length) {
+          LAB.clearCart();
+          renderCart();
+          return;
+        }
+        status.textContent = "";
+        try {
+          LAB.pushEcomEvent("remove_from_cart", {
+            currency: LAB.currency,
+            value: LAB.calcValue(currentCart),
+            ecommerce: { items: currentCart }
+          });
+          LAB.clearCart();
+          renderCart();
+        } catch (err) {
+          status.textContent = "remove_from_cart push 실패로 장바구니 비우기가 차단되었습니다.";
+        }
       });
 
       document.getElementById("btnCheckout").addEventListener("click", function () {

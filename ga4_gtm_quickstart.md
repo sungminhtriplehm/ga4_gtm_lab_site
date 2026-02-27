@@ -26,7 +26,7 @@
 ## 4) GA4 Event Tags
 
 - 표준 이벤트명 사용:
-  - `view_item_list`, `select_item`, `view_item`, `add_to_cart`
+  - `view_item_list`, `select_item`, `view_item`, `add_to_cart`, `remove_from_cart`
   - `view_cart`, `begin_checkout`, `add_shipping_info`, `add_payment_info`, `purchase`
 
 ## 5) Custom HTML로 직접 push할 이벤트
