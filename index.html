@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
@@ -17,14 +17,7 @@
     <div class="container topbar">
       <a class="brand" href="index.html">GA4 + GTM Static Lab Shop</a>
       <div class="top-controls">
-        <label class="mode-label" for="trackingMode">Tracking Mode</label>
-        <select id="trackingMode" data-tracking-mode>
-          <option value="standard">GA4 Standard</option>
-          <option value="cafe24">Cafe24 Mode</option>
-          <option value="makeshop">MakeShop Mode</option>
-          <option value="godomall">GodoMall Mode</option>
-        </select>
-        <span class="mode-chip">Current: <strong data-current-mode>standard</strong></span>
+        <span class="mode-chip">Tracking: <strong data-current-mode>standard</strong></span>
         <a class="cart-link" href="cart.html">Cart <span class="badge" data-cart-count>0</span></a>
       </div>
     </div>
@@ -36,7 +29,7 @@
       <a href="thankyou.html" data-nav-page="thankyou">Thankyou</a>
       <a href="form.html" data-nav-page="form">Lead Form</a>
       <a href="buttons.html" data-nav-page="buttons">Buttons</a>
-      <a href="builder.html" data-nav-page="builder">Builder Mode</a>
+      <a href="builder.html" data-nav-page="builder">Platform Ref</a>
     </nav>
   </header>
 
@@ -60,7 +53,7 @@
         <h3>현재 상태 확인</h3>
         <div class="status-list">
           <div class="status-item">
-            Tracking Mode: <strong data-current-mode>standard</strong>
+            Tracking: <strong data-current-mode>standard</strong>
           </div>
           <div class="status-item">
             Cart Count: <strong data-cart-count>0</strong>
@@ -70,7 +63,7 @@
           </div>
         </div>
         <div class="btn-row" style="margin-top:10px;">
-          <a class="btn secondary" href="builder.html">빌더 매핑 보기</a>
+          <a class="btn secondary" href="builder.html">플랫폼 참고 보기</a>
           <a class="btn secondary" href="buttons.html">버튼 추적 실습</a>
         </div>
       </article>
@@ -84,24 +77,24 @@
             <tr>
               <th>행동</th>
               <th>기본 이벤트명</th>
-              <th>빌더 모드 예시</th>
+              <th>설명</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td>페이지 로드</td>
               <td><code>view_item_list</code></td>
-              <td><code>CAFE24_VIEW_ITEM_LIST</code> 등</td>
+              <td>상품 리스트 노출 시 1회 전송</td>
             </tr>
             <tr>
               <td>상세 보기 클릭</td>
               <td><code>select_item</code></td>
-              <td><code>MAKESHOP_SELECT_ITEM</code> 등</td>
+              <td>상세 페이지 이동 직전에 전송</td>
             </tr>
             <tr>
               <td>빠른 담기 클릭</td>
               <td><code>add_to_cart</code></td>
-              <td><code>GODOMALL_ADD_TO_CART</code> 등</td>
+              <td>메인에서 즉시 장바구니 추가 후 전송</td>
             </tr>
           </tbody>
         </table>
@@ -160,12 +153,13 @@
       var detailButton = card.querySelector('[data-action="detail"]');
       detailButton.addEventListener("click", function (event) {
         event.preventDefault();
+        var nextUrl = detailButton.getAttribute("href");
         LAB.pushEcomEvent("select_item", {
           currency: LAB.currency,
           value: LAB.calcValue([item]),
           ecommerce: { items: [item] }
         });
-        window.location.href = detailButton.getAttribute("href");
+        window.location.href = nextUrl;
       });
 
       var quickAddButton = card.querySelector('[data-action="quick-add"]');
@@ -193,3 +187,5 @@
   </script>
 </body>
 </html>
+
+

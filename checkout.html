@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
@@ -17,14 +17,7 @@
     <div class="container topbar">
       <a class="brand" href="index.html">GA4 + GTM Static Lab Shop</a>
       <div class="top-controls">
-        <label class="mode-label" for="trackingMode">Tracking Mode</label>
-        <select id="trackingMode" data-tracking-mode>
-          <option value="standard">GA4 Standard</option>
-          <option value="cafe24">Cafe24 Mode</option>
-          <option value="makeshop">MakeShop Mode</option>
-          <option value="godomall">GodoMall Mode</option>
-        </select>
-        <span class="mode-chip">Current: <strong data-current-mode>standard</strong></span>
+        <span class="mode-chip">Tracking: <strong data-current-mode>standard</strong></span>
         <a class="cart-link" href="cart.html">Cart <span class="badge" data-cart-count>0</span></a>
       </div>
     </div>
@@ -36,7 +29,7 @@
       <a href="thankyou.html" data-nav-page="thankyou">Thankyou</a>
       <a href="form.html" data-nav-page="form">Lead Form</a>
       <a href="buttons.html" data-nav-page="buttons">Buttons</a>
-      <a href="builder.html" data-nav-page="builder">Builder Mode</a>
+      <a href="builder.html" data-nav-page="builder">Platform Ref</a>
     </nav>
   </header>
 
@@ -110,6 +103,7 @@
         '      <button class="btn secondary" id="btnPaymentInfo" type="button">결제정보 제출</button>' +
         '      <button class="btn accent" id="btnPlaceOrder" type="button">주문 완료로 이동</button>' +
         "    </div>" +
+        '    <p id="checkoutStatus" class="small" style="margin-top:10px;">아직 제출되지 않았습니다.</p>' +
         "  </div>" +
         "</div>";
 
@@ -120,6 +114,7 @@
           shipping_tier: document.getElementById("shippingTier").value,
           ecommerce: { items: cart }
         });
+        document.getElementById("checkoutStatus").textContent = "배송정보 이벤트가 전송되었습니다.";
       });
 
       document.getElementById("btnPaymentInfo").addEventListener("click", function () {
@@ -129,6 +124,7 @@
           payment_type: document.getElementById("paymentType").value,
           ecommerce: { items: cart }
         });
+        document.getElementById("checkoutStatus").textContent = "결제정보 이벤트가 전송되었습니다.";
       });
 
       document.getElementById("btnPlaceOrder").addEventListener("click", function () {
@@ -153,7 +149,18 @@
         LAB.savePendingOrder(order);
         window.location.href = "thankyou.html";
       });
+
+      window.addEventListener("pageshow", function (event) {
+        if (!event.persisted) return;
+        isPlacingOrder = false;
+        var button = document.getElementById("btnPlaceOrder");
+        if (!button) return;
+        button.disabled = false;
+        button.textContent = "주문 완료로 이동";
+      });
     }
   </script>
 </body>
 </html>
+
+

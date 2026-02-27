@@ -2,23 +2,41 @@
   "use strict";
 
   var STORAGE = {
-    MODE: "lab_tracking_mode",
     CART: "lab_cart",
     PENDING_ORDER: "lab_pending_order",
+    LAST_ORDER: "lab_last_order",
     DEBUG_CONSOLE: "lab_debug_console",
     DL_HISTORY: "lab_dl_history"
   };
 
-  var MODES = ["standard", "cafe24", "makeshop", "godomall"];
-  var MODE_PREFIX = {
-    standard: "",
-    cafe24: "CAFE24",
-    makeshop: "MAKESHOP",
-    godomall: "GODOMALL"
-  };
   var DEFAULT_MODE = "standard";
   var CURRENCY = (window.LAB_DATA && window.LAB_DATA.currency) || "KRW";
-  var FALLBACK_PREFIX = "__LAB_STORE__:";
+
+  function assign(target) {
+    var to = target || {};
+    for (var i = 1; i < arguments.length; i += 1) {
+      var source = arguments[i];
+      if (!source) continue;
+      for (var key in source) {
+        if (Object.prototype.hasOwnProperty.call(source, key)) {
+          to[key] = source[key];
+        }
+      }
+    }
+    return to;
+  }
+
+  function forEachNode(selector, callback) {
+    var nodes = document.querySelectorAll(selector);
+    for (var i = 0; i < nodes.length; i += 1) {
+      callback(nodes[i], i);
+    }
+  }
+
+  function leftPad2(value) {
+    var text = String(value);
+    return text.length < 2 ? "0" + text : text;
+  }
 
   function safeJsonParse(value, fallback) {
     try {
@@ -36,38 +54,9 @@
     }
   }
 
-  function readFallbackRoot() {
-    if (window.__LAB_WINDOW_STORE) return window.__LAB_WINDOW_STORE;
-
-    var root = { local: {}, session: {} };
-    try {
-      var raw = String(window.name || "");
-      if (raw.indexOf(FALLBACK_PREFIX) === 0) {
-        var parsed = safeJsonParse(raw.slice(FALLBACK_PREFIX.length), null);
-        if (parsed && typeof parsed === "object") {
-          root.local = parsed.local && typeof parsed.local === "object" ? parsed.local : {};
-          root.session = parsed.session && typeof parsed.session === "object" ? parsed.session : {};
-        }
-      }
-    } catch (err) {
-      root = { local: {}, session: {} };
-    }
-
-    window.__LAB_WINDOW_STORE = root;
-    return root;
-  }
-
-  function writeFallbackRoot(root) {
-    window.__LAB_WINDOW_STORE = root;
-    try {
-      window.name = FALLBACK_PREFIX + JSON.stringify(root);
-    } catch (err) {
-      // no-op
-    }
-  }
-
   function createStorageAdapter(type) {
     var nativeStorage = null;
+    var unavailableLogged = false;
     try {
       nativeStorage = type === "local" ? window.localStorage : window.sessionStorage;
       var testKey = "__lab_storage_test__";
@@ -77,54 +66,51 @@
       nativeStorage = null;
     }
 
-    function readFallbackBucket() {
-      var root = readFallbackRoot();
-      if (!root[type] || typeof root[type] !== "object") root[type] = {};
-      return root[type];
+    function logUnavailable() {
+      if (unavailableLogged) return;
+      unavailableLogged = true;
+      console.error("[LAB] " + type + "Storage is unavailable. state persistence is disabled.");
     }
 
     return {
+      isAvailable: !!nativeStorage,
       getItem: function (key) {
-        if (nativeStorage) {
-          try {
-            return nativeStorage.getItem(key);
-          } catch (err) {
-            nativeStorage = null;
-          }
+        if (!nativeStorage) {
+          logUnavailable();
+          return null;
         }
-        var bucket = readFallbackBucket();
-        return Object.prototype.hasOwnProperty.call(bucket, key) ? bucket[key] : null;
+        try {
+          return nativeStorage.getItem(key);
+        } catch (err) {
+          nativeStorage = null;
+          logUnavailable();
+          return null;
+        }
       },
       setItem: function (key, value) {
-        var nextValue = String(value);
-        if (nativeStorage) {
-          try {
-            nativeStorage.setItem(key, nextValue);
-            return;
-          } catch (err) {
-            nativeStorage = null;
-          }
+        if (!nativeStorage) {
+          logUnavailable();
+          return;
         }
-        var root = readFallbackRoot();
-        var bucket = readFallbackBucket();
-        bucket[key] = nextValue;
-        root[type] = bucket;
-        writeFallbackRoot(root);
+        var nextValue = String(value);
+        try {
+          nativeStorage.setItem(key, nextValue);
+        } catch (err) {
+          nativeStorage = null;
+          logUnavailable();
+        }
       },
       removeItem: function (key) {
-        if (nativeStorage) {
-          try {
-            nativeStorage.removeItem(key);
-            return;
-          } catch (err) {
-            nativeStorage = null;
-          }
+        if (!nativeStorage) {
+          logUnavailable();
+          return;
         }
-        var root = readFallbackRoot();
-        var bucket = readFallbackBucket();
-        delete bucket[key];
-        root[type] = bucket;
-        writeFallbackRoot(root);
+        try {
+          nativeStorage.removeItem(key);
+        } catch (err) {
+          nativeStorage = null;
+          logUnavailable();
+        }
       }
     };
   }
@@ -132,18 +118,12 @@
   var localStore = createStorageAdapter("local");
   var sessionStore = createStorageAdapter("session");
 
-  function normalizeMode(mode) {
-    var candidate = String(mode || "").toLowerCase();
-    return MODES.indexOf(candidate) >= 0 ? candidate : DEFAULT_MODE;
-  }
-
   function getMode() {
-    return normalizeMode(localStore.getItem(STORAGE.MODE));
+    return DEFAULT_MODE;
   }
 
-  function setMode(mode) {
-    var nextMode = normalizeMode(mode);
-    localStore.setItem(STORAGE.MODE, nextMode);
+  function setMode() {
+    var nextMode = DEFAULT_MODE;
     syncModeSelectors();
     syncModeBadges();
     renderDebugPanel();
@@ -166,9 +146,7 @@
   }
 
   function mapEventName(eventName) {
-    var mode = getMode();
-    if (mode === "standard") return eventName;
-    return MODE_PREFIX[mode] + "_" + toUpperSnake(eventName);
+    return eventName;
   }
 
   function getDlHistory() {
@@ -229,13 +207,19 @@
 
   function dlPush(payload) {
     window.dataLayer = window.dataLayer || [];
+    if (typeof window.dataLayer.push !== "function") {
+      throw new Error("dataLayer.push is not available");
+    }
     window.dataLayer.push(payload);
   }
 
   function pushEvent(eventName, payload) {
+    if (!eventName || typeof eventName !== "string") {
+      throw new Error("eventName is required");
+    }
     var mappedName = mapEventName(eventName);
     var body = payload || {};
-    var eventPayload = Object.assign({ event: mappedName }, body);
+    var eventPayload = assign({ event: mappedName }, body);
     dlPush(eventPayload);
     return eventPayload;
   }
@@ -268,7 +252,7 @@
       price: Number(product.price || 0),
       quantity: qty
     };
-    return Object.assign(item, extra || {});
+    return assign(item, extra || {});
   }
 
   function calcValue(items) {
@@ -306,9 +290,14 @@
   function addToCart(item) {
     var cart = getCart();
     var key = item.item_id + "::" + (item.item_variant || "");
-    var index = cart.findIndex(function (cartItem) {
-      return cartItem.item_id + "::" + (cartItem.item_variant || "") === key;
-    });
+    var index = -1;
+    for (var i = 0; i < cart.length; i += 1) {
+      var currentKey = cart[i].item_id + "::" + (cart[i].item_variant || "");
+      if (currentKey === key) {
+        index = i;
+        break;
+      }
+    }
 
     if (index >= 0) {
       cart[index].quantity =
@@ -321,7 +310,7 @@
 
   function updateCartBadge() {
     var count = String(getCartCount());
-    document.querySelectorAll("[data-cart-count]").forEach(function (badge) {
+    forEachNode("[data-cart-count]", function (badge) {
       badge.textContent = count;
     });
   }
@@ -329,11 +318,11 @@
   function generateTransactionId() {
     var date = new Date();
     var year = date.getFullYear();
-    var month = String(date.getMonth() + 1).padStart(2, "0");
-    var day = String(date.getDate()).padStart(2, "0");
-    var hour = String(date.getHours()).padStart(2, "0");
-    var minute = String(date.getMinutes()).padStart(2, "0");
-    var second = String(date.getSeconds()).padStart(2, "0");
+    var month = leftPad2(date.getMonth() + 1);
+    var day = leftPad2(date.getDate());
+    var hour = leftPad2(date.getHours());
+    var minute = leftPad2(date.getMinutes());
+    var second = leftPad2(date.getSeconds());
     var stamp = "" + year + month + day + hour + minute + second;
     var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     var random = "";
@@ -352,40 +341,60 @@
     return safeJsonParse(raw, null);
   }
 
+  function saveLastOrder(order) {
+    sessionStore.setItem(STORAGE.LAST_ORDER, JSON.stringify(order));
+  }
+
+  function getLastOrder() {
+    var raw = sessionStore.getItem(STORAGE.LAST_ORDER);
+    return safeJsonParse(raw, null);
+  }
+
   function clearPendingOrder() {
     sessionStore.removeItem(STORAGE.PENDING_ORDER);
   }
 
   function getQueryParam(name) {
-    return new URLSearchParams(window.location.search).get(name);
+    var search = String(window.location.search || "");
+    if (!search || search.length < 2) return null;
+    var query = search.charAt(0) === "?" ? search.slice(1) : search;
+    var pairs = query.split("&");
+    for (var i = 0; i < pairs.length; i += 1) {
+      var pair = pairs[i].split("=");
+      var key = decodeURIComponent(pair[0] || "");
+      if (key === name) {
+        return decodeURIComponent(pair[1] || "");
+      }
+    }
+    return null;
   }
 
   function syncModeSelectors() {
     var currentMode = getMode();
-    document.querySelectorAll("[data-tracking-mode]").forEach(function (select) {
+    forEachNode("[data-tracking-mode]", function (select) {
       select.value = currentMode;
     });
   }
 
   function syncModeBadges() {
     var mode = getMode();
-    document.querySelectorAll("[data-current-mode]").forEach(function (node) {
+    forEachNode("[data-current-mode]", function (node) {
       node.textContent = mode;
     });
   }
 
   function bindModeSelectors() {
-    document.querySelectorAll("[data-tracking-mode]").forEach(function (select) {
+    forEachNode("[data-tracking-mode]", function (select) {
       if (select.dataset.bound === "1") return;
       select.dataset.bound = "1";
       select.addEventListener("change", function () {
-        setMode(select.value);
+        setMode();
       });
     });
   }
 
   function setActiveNav(pageId) {
-    document.querySelectorAll("[data-nav-page]").forEach(function (link) {
+    forEachNode("[data-nav-page]", function (link) {
       if (link.getAttribute("data-nav-page") === pageId) {
         link.classList.add("active");
       }
@@ -489,6 +498,8 @@
     generateTransactionId: generateTransactionId,
     savePendingOrder: savePendingOrder,
     getPendingOrder: getPendingOrder,
+    saveLastOrder: saveLastOrder,
+    getLastOrder: getLastOrder,
     clearPendingOrder: clearPendingOrder,
     getQueryParam: getQueryParam,
     initCommon: initCommon,

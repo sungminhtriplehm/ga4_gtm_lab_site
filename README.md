@@ -26,7 +26,7 @@
 - `thankyou.html`: 구매완료
 - `form.html`: 가짜 리드 폼
 - `buttons.html`: 버튼 추적 실습
-- `builder.html`: 빌더 모드 전환/매핑 안내
+- `builder.html`: 플랫폼 구조 참고 페이지
 
 ## 이벤트 발생 맵
 
@@ -56,14 +56,10 @@
 2. `thankyou.html`: `purchase` 누락, `#orderJson` + `sessionStorage` 주문 데이터 제공
 3. `form.html`: `form_submit` 누락, 폼 DOM payload/속성 제공
 
-## Tracking Mode
+## 플랫폼 참고
 
-상단 `Tracking Mode`에서 모드를 전환할 수 있습니다.
-
-- `GA4 Standard`: 원본 이벤트명 유지
-- `Cafe24 / MakeShop / GodoMall`: `PREFIX_EVENT_NAME` 형식 가상 이벤트명 발생
-
-예: `add_to_cart` -> `CAFE24_ADD_TO_CART`, `MAKESHOP_ADD_TO_CART`, `GODOMALL_ADD_TO_CART`
+- 이 프로젝트는 GA4 표준 이벤트명으로 고정되어 있습니다.
+- `builder.html`은 플랫폼별 DOM 구조 예시를 참고하기 위한 페이지입니다.
 
 ## GTM 최소 셋업 체크리스트
 
@@ -77,7 +73,7 @@
    - Page View (thankyou 구매 실습용)
    - Click (버튼/상품 담기 실습용)
    - Form Submission 또는 Click (폼 제출 실습용)
-   - Custom Event (빌더 가상 이벤트명 수신용)
+   - Custom Event (필요 시 커스텀 이벤트 수신용)
 3. 태그 생성
    - GA4 Event 태그(표준 이벤트명 기준)
    - Custom HTML 태그(누락된 `add_to_cart`, `purchase`, `form_submit`을 `dataLayer.push`)

@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
@@ -17,14 +17,7 @@
     <div class="container topbar">
       <a class="brand" href="index.html">GA4 + GTM Static Lab Shop</a>
       <div class="top-controls">
-        <label class="mode-label" for="trackingMode">Tracking Mode</label>
-        <select id="trackingMode" data-tracking-mode>
-          <option value="standard">GA4 Standard</option>
-          <option value="cafe24">Cafe24 Mode</option>
-          <option value="makeshop">MakeShop Mode</option>
-          <option value="godomall">GodoMall Mode</option>
-        </select>
-        <span class="mode-chip">Current: <strong data-current-mode>standard</strong></span>
+        <span class="mode-chip">Tracking: <strong data-current-mode>standard</strong></span>
         <a class="cart-link" href="cart.html">Cart <span class="badge" data-cart-count>0</span></a>
       </div>
     </div>
@@ -36,7 +29,7 @@
       <a href="thankyou.html" data-nav-page="thankyou">Thankyou</a>
       <a href="form.html" data-nav-page="form">Lead Form</a>
       <a href="buttons.html" data-nav-page="buttons">Buttons</a>
-      <a href="builder.html" data-nav-page="builder">Builder Mode</a>
+      <a href="builder.html" data-nav-page="builder">Platform Ref</a>
     </nav>
   </header>
 
@@ -93,6 +86,7 @@
         '      <button id="' + buttonId + '" class="btn" type="button">장바구니 담기 (push 누락)</button>' +
         '      <a class="btn secondary" href="cart.html">장바구니로 이동</a>' +
         "    </div>" +
+        '    <p id="productStatus" class="small" style="margin-top:10px;">버튼 클릭 시 장바구니에만 반영됩니다.</p>' +
         "  </div>" +
         "</div>";
 
@@ -133,8 +127,12 @@
       addButton.addEventListener("click", function () {
         var qty = Math.max(1, Number(qtyInput.value || 1));
         LAB.addToCart(LAB.buildItem(product, qty));
+        document.getElementById("productStatus").textContent =
+          "장바구니에 " + qty + "개 담겼습니다. (add_to_cart push는 GTM에서 처리)";
       });
     }
   </script>
 </body>
 </html>
+
+
