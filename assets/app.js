@@ -11,6 +11,7 @@
 
   var DEFAULT_MODE = "standard";
   var CURRENCY = (window.LAB_DATA && window.LAB_DATA.currency) || "KRW";
+  var FALLBACK_PREFIX = "__LAB_STORE__:";
 
   function assign(target) {
     var to = target || {};
@@ -54,9 +55,39 @@
     }
   }
 
+  function readFallbackRoot() {
+    if (window.__LAB_WINDOW_STORE) return window.__LAB_WINDOW_STORE;
+
+    var root = { local: {}, session: {} };
+    try {
+      var raw = String(window.name || "");
+      if (raw.indexOf(FALLBACK_PREFIX) === 0) {
+        var parsed = safeJsonParse(raw.slice(FALLBACK_PREFIX.length), null);
+        if (parsed && typeof parsed === "object") {
+          root.local = parsed.local && typeof parsed.local === "object" ? parsed.local : {};
+          root.session = parsed.session && typeof parsed.session === "object" ? parsed.session : {};
+        }
+      }
+    } catch (err) {
+      root = { local: {}, session: {} };
+    }
+
+    window.__LAB_WINDOW_STORE = root;
+    return root;
+  }
+
+  function writeFallbackRoot(root) {
+    window.__LAB_WINDOW_STORE = root;
+    try {
+      window.name = FALLBACK_PREFIX + JSON.stringify(root);
+    } catch (err) {
+      // no-op
+    }
+  }
+
   function createStorageAdapter(type) {
     var nativeStorage = null;
-    var unavailableLogged = false;
+    var fallbackLogged = false;
     try {
       nativeStorage = type === "local" ? window.localStorage : window.sessionStorage;
       var testKey = "__lab_storage_test__";
@@ -66,50 +97,78 @@
       nativeStorage = null;
     }
 
-    function logUnavailable() {
-      if (unavailableLogged) return;
-      unavailableLogged = true;
-      console.error("[LAB] " + type + "Storage is unavailable. state persistence is disabled.");
+    function logFallback() {
+      if (fallbackLogged) return;
+      fallbackLogged = true;
+      console.warn("[LAB] " + type + "Storage unavailable. using window.name fallback store.");
+    }
+
+    function readFallbackBucket() {
+      var root = readFallbackRoot();
+      if (!root[type] || typeof root[type] !== "object") root[type] = {};
+      return root[type];
     }
 
     return {
       isAvailable: !!nativeStorage,
       getItem: function (key) {
         if (!nativeStorage) {
-          logUnavailable();
-          return null;
+          logFallback();
+          var bucket = readFallbackBucket();
+          return Object.prototype.hasOwnProperty.call(bucket, key) ? bucket[key] : null;
         }
         try {
           return nativeStorage.getItem(key);
         } catch (err) {
           nativeStorage = null;
-          logUnavailable();
-          return null;
+          logFallback();
+          var bucketOnError = readFallbackBucket();
+          return Object.prototype.hasOwnProperty.call(bucketOnError, key) ? bucketOnError[key] : null;
         }
       },
       setItem: function (key, value) {
+        var nextValue = String(value);
         if (!nativeStorage) {
-          logUnavailable();
+          logFallback();
+          var root = readFallbackRoot();
+          var bucket = readFallbackBucket();
+          bucket[key] = nextValue;
+          root[type] = bucket;
+          writeFallbackRoot(root);
           return;
         }
-        var nextValue = String(value);
         try {
           nativeStorage.setItem(key, nextValue);
         } catch (err) {
           nativeStorage = null;
-          logUnavailable();
+          logFallback();
+          var rootOnError = readFallbackRoot();
+          var bucketOnError = readFallbackBucket();
+          bucketOnError[key] = nextValue;
+          rootOnError[type] = bucketOnError;
+          writeFallbackRoot(rootOnError);
         }
       },
       removeItem: function (key) {
         if (!nativeStorage) {
-          logUnavailable();
+          logFallback();
+          var root = readFallbackRoot();
+          var bucket = readFallbackBucket();
+          delete bucket[key];
+          root[type] = bucket;
+          writeFallbackRoot(root);
           return;
         }
         try {
           nativeStorage.removeItem(key);
         } catch (err) {
           nativeStorage = null;
-          logUnavailable();
+          logFallback();
+          var rootOnError = readFallbackRoot();
+          var bucketOnError = readFallbackBucket();
+          delete bucketOnError[key];
+          rootOnError[type] = bucketOnError;
+          writeFallbackRoot(rootOnError);
         }
       }
     };
@@ -208,7 +267,8 @@
   function dlPush(payload) {
     window.dataLayer = window.dataLayer || [];
     if (typeof window.dataLayer.push !== "function") {
-      throw new Error("dataLayer.push is not available");
+      window.dataLayer = [];
+      wrapDataLayerPush();
     }
     window.dataLayer.push(payload);
   }

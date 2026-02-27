@@ -58,15 +58,34 @@
     var product = LAB.getProductById(sku);
     var productBox = document.getElementById("productBox");
     var datasetPreview = document.getElementById("datasetPreview");
+    var allProducts = LAB.getProducts();
+
+    function renderProductLinks(currentSku) {
+      if (!allProducts.length) return "";
+      return (
+        '<div class="panel" style="margin-bottom:10px;">' +
+        '<div class="small" style="margin-bottom:8px;">다른 상품 상세로 이동</div>' +
+        '<div class="pill-list">' +
+        allProducts.map(function (p) {
+          var cls = p.item_id === currentSku ? "btn" : "btn secondary";
+          return '<a class="' + cls + '" href="product.html?sku=' + encodeURIComponent(p.item_id) + '">' + p.item_name + "</a>";
+        }).join("") +
+        "</div>" +
+        "</div>"
+      );
+    }
 
     if (!product) {
-      productBox.innerHTML = '<p>상품을 찾을 수 없습니다.</p><a class="btn secondary" href="index.html">메인으로</a>';
+      productBox.innerHTML =
+        renderProductLinks("") +
+        '<p>상품을 찾을 수 없습니다.</p><a class="btn secondary" href="index.html">메인으로</a>';
     } else {
       var quantityInputId = "qtyInput";
       var buttonId = "btnAddToCart";
       var item = LAB.buildItem(product, 1);
 
       productBox.innerHTML =
+        renderProductLinks(product.item_id) +
         '<div class="layout-grid two-col">' +
         '  <div class="panel">' +
         "    <h2>" + product.item_name + "</h2>" +

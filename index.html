@@ -152,14 +152,11 @@
 
       var detailButton = card.querySelector('[data-action="detail"]');
       detailButton.addEventListener("click", function (event) {
-        event.preventDefault();
-        var nextUrl = detailButton.getAttribute("href");
         LAB.pushEcomEvent("select_item", {
           currency: LAB.currency,
           value: LAB.calcValue([item]),
           ecommerce: { items: [item] }
         });
-        window.location.href = nextUrl;
       });
 
       var quickAddButton = card.querySelector('[data-action="quick-add"]');
