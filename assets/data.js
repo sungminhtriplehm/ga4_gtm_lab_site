@@ -3,6 +3,7 @@ window.LAB_DATA = {
   products: [
     {
       item_id: "SKU_001",
+      slug: "sku-001",
       item_name: "Starter Analytics Notebook",
       item_category: "Stationery",
       item_variant: "standard",
@@ -10,6 +11,7 @@ window.LAB_DATA = {
     },
     {
       item_id: "SKU_002",
+      slug: "sku-002",
       item_name: "Tag Assistant Hoodie",
       item_category: "Apparel",
       item_variant: "black",
@@ -17,6 +19,7 @@ window.LAB_DATA = {
     },
     {
       item_id: "SKU_003",
+      slug: "sku-003",
       item_name: "Debug View Tumbler",
       item_category: "Lifestyle",
       item_variant: "silver",

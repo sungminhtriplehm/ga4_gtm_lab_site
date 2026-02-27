@@ -23,7 +23,7 @@
     </div>
     <nav class="container page-nav">
       <a href="index.html" data-nav-page="index">Home</a>
-      <a href="product.html?sku=SKU_001" data-nav-page="product">Product</a>
+      <a href="product-sku-001.html" data-nav-page="product">Product</a>
       <a href="cart.html" data-nav-page="cart">Cart</a>
       <a href="checkout.html" data-nav-page="checkout">Checkout</a>
       <a href="thankyou.html" data-nav-page="thankyou">Thankyou</a>
@@ -104,6 +104,7 @@
     <section class="panel" style="margin-top:14px;">
       <h2 class="page-title">상품 리스트</h2>
       <p class="small">카드의 "상세 보기"는 <code>select_item</code>, "빠른 담기"는 <code>add_to_cart</code>를 전송합니다.</p>
+      <p id="detailPushError" class="small" style="color:#ad3f2f; display:none; margin-top:8px;"></p>
       <div id="productList" class="product-grid"></div>
     </section>
   </main>
@@ -116,6 +117,7 @@
     var LIST_ID = "home_list";
     var LIST_NAME = "Main Product List";
     var listContainer = document.getElementById("productList");
+    var detailPushError = document.getElementById("detailPushError");
     var products = LAB.getProducts();
     var listItems = [];
 
@@ -137,6 +139,7 @@
 
       var card = document.createElement("article");
       card.className = "product-card";
+      var detailUrl = LAB.getProductUrl(product.item_id);
       card.innerHTML =
         "<h3>" + product.item_name + "</h3>" +
         '<div class="subline">실습용 더미 상품</div>' +
@@ -146,27 +149,45 @@
         "</div>" +
         '<div class="price">' + LAB.formatMoney(product.price) + " KRW</div>" +
         '<div class="btn-row">' +
-        '  <a class="btn secondary" href="product.html?sku=' + encodeURIComponent(product.item_id) + '" data-action="detail">상세 보기</a>' +
+        '  <a class="btn secondary" href="' + detailUrl + '" data-action="detail">상세 보기</a>' +
         '  <button class="btn" type="button" data-action="quick-add">빠른 담기</button>' +
         "</div>";
 
       var detailButton = card.querySelector('[data-action="detail"]');
       detailButton.addEventListener("click", function (event) {
-        LAB.pushEcomEvent("select_item", {
-          currency: LAB.currency,
-          value: LAB.calcValue([item]),
-          ecommerce: { items: [item] }
-        });
+        event.preventDefault();
+        detailPushError.style.display = "none";
+        detailPushError.textContent = "";
+        try {
+          LAB.mustPushEcomEvent("select_item", {
+            currency: LAB.currency,
+            value: LAB.calcValue([item]),
+            ecommerce: { items: [item] }
+          });
+          window.location.href = detailUrl;
+        } catch (err) {
+          detailPushError.textContent =
+            "상세 이동이 차단되었습니다. select_item push 실패: dataLayer/GTM 설정을 확인하세요.";
+          detailPushError.style.display = "block";
+        }
       });
 
       var quickAddButton = card.querySelector('[data-action="quick-add"]');
       quickAddButton.addEventListener("click", function () {
-        LAB.addToCart(item);
-        LAB.pushEcomEvent("add_to_cart", {
-          currency: LAB.currency,
-          value: LAB.calcValue([item]),
-          ecommerce: { items: [item] }
-        });
+        detailPushError.style.display = "none";
+        detailPushError.textContent = "";
+        try {
+          LAB.pushEcomEvent("add_to_cart", {
+            currency: LAB.currency,
+            value: LAB.calcValue([item]),
+            ecommerce: { items: [item] }
+          });
+          LAB.addToCart(item);
+        } catch (err) {
+          detailPushError.textContent =
+            "빠른 담기가 차단되었습니다. add_to_cart push 실패: dataLayer/GTM 설정을 확인하세요.";
+          detailPushError.style.display = "block";
+        }
       });
 
       listContainer.appendChild(card);

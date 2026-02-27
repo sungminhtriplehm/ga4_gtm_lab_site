@@ -23,7 +23,7 @@
     </div>
     <nav class="container page-nav">
       <a href="index.html" data-nav-page="index">Home</a>
-      <a href="product.html?sku=SKU_001" data-nav-page="product">Product</a>
+      <a href="product-sku-001.html" data-nav-page="product">Product</a>
       <a href="cart.html" data-nav-page="cart">Cart</a>
       <a href="checkout.html" data-nav-page="checkout">Checkout</a>
       <a href="thankyou.html" data-nav-page="thankyou">Thankyou</a>
@@ -51,7 +51,6 @@
 
     var container = document.getElementById("checkoutContent");
     var cart = LAB.getCart();
-    var isPlacingOrder = false;
 
     if (!cart.length) {
       container.innerHTML =
@@ -108,32 +107,35 @@
         "</div>";
 
       document.getElementById("btnShippingInfo").addEventListener("click", function () {
-        LAB.pushEcomEvent("add_shipping_info", {
-          currency: LAB.currency,
-          value: LAB.calcValue(cart),
-          shipping_tier: document.getElementById("shippingTier").value,
-          ecommerce: { items: cart }
-        });
-        document.getElementById("checkoutStatus").textContent = "배송정보 이벤트가 전송되었습니다.";
+        try {
+          LAB.pushEcomEvent("add_shipping_info", {
+            currency: LAB.currency,
+            value: LAB.calcValue(cart),
+            shipping_tier: document.getElementById("shippingTier").value,
+            ecommerce: { items: cart }
+          });
+          document.getElementById("checkoutStatus").textContent = "배송정보 이벤트가 전송되었습니다.";
+        } catch (err) {
+          document.getElementById("checkoutStatus").textContent = "add_shipping_info push 실패";
+        }
       });
 
       document.getElementById("btnPaymentInfo").addEventListener("click", function () {
-        LAB.pushEcomEvent("add_payment_info", {
-          currency: LAB.currency,
-          value: LAB.calcValue(cart),
-          payment_type: document.getElementById("paymentType").value,
-          ecommerce: { items: cart }
-        });
-        document.getElementById("checkoutStatus").textContent = "결제정보 이벤트가 전송되었습니다.";
+        try {
+          LAB.pushEcomEvent("add_payment_info", {
+            currency: LAB.currency,
+            value: LAB.calcValue(cart),
+            payment_type: document.getElementById("paymentType").value,
+            ecommerce: { items: cart }
+          });
+          document.getElementById("checkoutStatus").textContent = "결제정보 이벤트가 전송되었습니다.";
+        } catch (err) {
+          document.getElementById("checkoutStatus").textContent = "add_payment_info push 실패";
+        }
       });
 
       document.getElementById("btnPlaceOrder").addEventListener("click", function () {
-        if (isPlacingOrder) return;
-        isPlacingOrder = true;
-
-        var placeOrderButton = document.getElementById("btnPlaceOrder");
-        placeOrderButton.disabled = true;
-        placeOrderButton.textContent = "주문 처리 중...";
+        document.getElementById("checkoutStatus").textContent = "주문 정보를 저장하고 완료 페이지로 이동합니다.";
 
         var shippingTier = document.getElementById("shippingTier").value;
         var paymentType = document.getElementById("paymentType").value;
@@ -149,18 +151,10 @@
         LAB.savePendingOrder(order);
         window.location.href = "thankyou.html";
       });
-
-      window.addEventListener("pageshow", function (event) {
-        if (!event.persisted) return;
-        isPlacingOrder = false;
-        var button = document.getElementById("btnPlaceOrder");
-        if (!button) return;
-        button.disabled = false;
-        button.textContent = "주문 완료로 이동";
-      });
     }
   </script>
 </body>
 </html>
+
 
 

@@ -1,93 +1,77 @@
-# GA4 + GTM Static Mini Commerce Lab
+﻿# GA4 + GTM Static Mini Commerce Lab
 
-정적 HTML 기반 GA4/GTM 실습용 미니 커머스 사이트입니다.  
-백엔드/DB 없이 `dataLayer` 중심으로 이벤트를 다룹니다.
-
-## 빠른 GA4 + GTM 설정 가이드 (간단)
-
-1. GTM 컨테이너 생성 후 각 페이지의 슬롯에 스니펫 삽입
-   - `<head>`: `<!-- GTM_HEAD_SLOT -->`
-   - `<body>` 시작 직후: `<!-- GTM_BODY_SLOT -->`
-2. GTM에서 GA4 Configuration 태그 1개 생성 (모든 페이지)
-3. Data Layer Variable 생성
-   - `event`, `ecommerce.items`, `value`, `currency`, `transaction_id`
-4. GA4 Event 태그 생성
-   - 표준 이벤트명 기준(`view_item_list`, `select_item` 등)
-5. 누락 지점 3곳은 Custom HTML 태그로 `dataLayer.push` 실습
-   - `product.html` add_to_cart, `thankyou.html` purchase, `form.html` form_submit
-6. GTM Preview + GA4 DebugView로 동작 확인
+정적 HTML 기반 GA4/GTM 실습용 미니 커머스 사이트입니다. 백엔드/DB 없이 `dataLayer.push` 흐름만 검증합니다.
 
 ## 페이지 구성
 
-- `index.html`: 메인 상품 리스트
-- `product.html`: 상품 상세
+- `index.html`: 메인 상품 목록
+- `product-sku-001.html`: 상세 1
+- `product-sku-002.html`: 상세 2
+- `product-sku-003.html`: 상세 3
 - `cart.html`: 장바구니
 - `checkout.html`: 체크아웃
 - `thankyou.html`: 구매완료
-- `form.html`: 가짜 리드 폼
-- `buttons.html`: 버튼 추적 실습
-- `builder.html`: 플랫폼 구조 참고 페이지
+- `form.html`: 폼 추적 실습
+- `buttons.html`: 버튼 클릭 추적 실습
+- `builder.html`: 플랫폼 DOM 구조 참고 페이지
 
-## 이벤트 발생 맵
+## 이벤트 발생 지점
 
 - `index.html`
-  - `view_item_list` (로드 시 1회)
-  - `select_item` (상세 이동 클릭 시)
-  - `add_to_cart` (빠른 담기 클릭 시)
-- `product.html`
-  - `view_item` (로드 시 1회)
-  - `add_to_cart`는 **페이지 코드에서 미전송**
+  - `view_item_list` (페이지 로드 1회)
+  - `select_item` (상세 버튼 클릭 시 must-push)
+  - `add_to_cart` (빠른 담기 클릭)
+- `product-sku-001/002/003.html`
+  - `view_item` (페이지 로드 1회)
+  - `add_to_cart`는 페이지 코드에서 전송하지 않음
 - `cart.html`
-  - `view_cart` (로드 시 1회)
-  - `begin_checkout` (주문하기 클릭 시)
+  - `view_cart` (페이지 로드 1회)
+  - `begin_checkout` (주문하기 클릭)
 - `checkout.html`
-  - `add_shipping_info` (배송정보 제출 버튼)
-  - `add_payment_info` (결제정보 제출 버튼)
+  - `add_shipping_info` (배송정보 제출)
+  - `add_payment_info` (결제정보 제출)
 - `thankyou.html`
-  - `purchase`는 **페이지 코드에서 미전송**
+  - `purchase`는 페이지 코드에서 전송하지 않음
 - `form.html`
-  - `form_submit`은 **페이지 코드에서 미전송**
-- `buttons.html`
-  - 페이지 코드 자동 전송 없음 (GTM 클릭 트리거 실습용)
+  - `form_submit`는 페이지 코드에서 전송하지 않음
 
-## Custom HTML 실습용 의도적 누락 3곳
+## 의도적 push 누락 3지점
 
-1. `product.html`: `add_to_cart` 누락, `#btnAddToCart` dataset 제공
-2. `thankyou.html`: `purchase` 누락, `#orderJson` + `sessionStorage` 주문 데이터 제공
-3. `form.html`: `form_submit` 누락, 폼 DOM payload/속성 제공
+1. 상세 페이지(`product-sku-001/002/003.html`)의 `add_to_cart`
+   - `#btnAddToCart` dataset(`data-sku`, `data-name`, `data-price`, `data-category`, `data-currency`, `data-quantity`) 제공
+2. `thankyou.html`의 `purchase`
+   - `#orderJson` + `sessionStorage` 주문 데이터 제공
+3. `form.html`의 `form_submit`
+   - 폼 payload를 DOM attribute/`#formPayload`로 제공
 
-## 플랫폼 참고
+## must-push 정책
 
-- 이 프로젝트는 GA4 표준 이벤트명으로 고정되어 있습니다.
-- `builder.html`은 플랫폼별 DOM 구조 예시를 참고하기 위한 페이지입니다.
+- 메인 상세 이동은 `select_item` 전송 성공 시에만 이동합니다.
+- 실패 시 이동이 차단되고 화면에 오류 메시지가 표시됩니다.
 
 ## GTM 최소 셋업 체크리스트
 
-1. 변수 생성(Data Layer Variable)
-   - `event`
-   - `ecommerce.items`
-   - `value`
-   - `currency`
-   - `transaction_id`
-2. 트리거 생성
-   - Page View (thankyou 구매 실습용)
-   - Click (버튼/상품 담기 실습용)
-   - Form Submission 또는 Click (폼 제출 실습용)
-   - Custom Event (필요 시 커스텀 이벤트 수신용)
-3. 태그 생성
-   - GA4 Event 태그(표준 이벤트명 기준)
-   - Custom HTML 태그(누락된 `add_to_cart`, `purchase`, `form_submit`을 `dataLayer.push`)
+1. 모든 페이지에 GTM 스니펫 삽입
+   - `<head>`의 `<!-- GTM_HEAD_SLOT -->`
+   - `<body>` 시작 직후 `<!-- GTM_BODY_SLOT -->`
+2. Variables (Data Layer Variable)
+   - `event`, `ecommerce.items`, `value`, `currency`, `transaction_id`
+3. Triggers
+   - Page View, Click, Form Submission, Custom Event
+4. Tags
+   - GA4 Event 태그(표준 이벤트명)
+   - Custom HTML 태그(누락된 `add_to_cart`, `purchase`, `form_submit` push)
 
-## 검증 방법
+## 검증 방법 (간단)
 
-1. GTM Preview 모드 실행
-2. 각 페이지 이동/클릭/폼 제출 수행
-3. GA4 DebugView에서 이벤트 순서와 파라미터 확인
-4. 하단 Debug Panel에서 최근 `dataLayer.push` 20건 확인
+1. GTM Preview 실행
+2. 페이지 흐름 실행: `index -> product -> cart -> checkout -> thankyou`
+3. GA4 DebugView에서 이벤트명/파라미터 확인
+4. 각 페이지 하단 Debug Panel에서 최근 `dataLayer.push` 20건 확인
 
 ## 참고
 
-- 모든 페이지는 다음 슬롯을 포함합니다.
-  - `<head>`: `<!-- GTM_HEAD_SLOT -->`
-  - `<body>` 시작 직후: `<!-- GTM_BODY_SLOT -->`
-- 공통 로직은 `assets/app.js`, 상품 데이터는 `assets/data.js`에 있습니다.
+- 모든 HTML 페이지는 아래 두 슬롯을 포함합니다.
+  - `<!-- GTM_HEAD_SLOT -->`
+  - `<!-- GTM_BODY_SLOT -->`
+- 이벤트명은 GA4 표준 이벤트명으로 고정되어 있습니다.

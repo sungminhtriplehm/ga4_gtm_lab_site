@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GA4 + GTM Lab | Product</title>
+  <title>GA4 + GTM Lab | Product SKU_003</title>
   <link rel="stylesheet" href="assets/style.css" />
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -23,7 +23,7 @@
     </div>
     <nav class="container page-nav">
       <a href="index.html" data-nav-page="index">Home</a>
-      <a href="product.html?sku=SKU_001" data-nav-page="product">Product</a>
+      <a href="product-sku-001.html" data-nav-page="product">Product</a>
       <a href="cart.html" data-nav-page="cart">Cart</a>
       <a href="checkout.html" data-nav-page="checkout">Checkout</a>
       <a href="thankyou.html" data-nav-page="thankyou">Thankyou</a>
@@ -39,12 +39,12 @@
       <div id="productBox"></div>
       <p class="small" style="margin-top:10px;">
         이 페이지는 <code>view_item</code>만 전송합니다. <code>add_to_cart</code>는 페이지 코드에서
-        일부러 push하지 않습니다. GTM Custom HTML에서 버튼 dataset을 읽어 직접 push하세요.
+        의도적으로 push하지 않습니다. GTM Custom HTML 태그에서 dataset을 읽어 push하세요.
       </p>
     </section>
 
     <section class="panel" style="margin-top:14px;">
-      <h2 class="page-title">GTM 실습용 dataset 미리보기</h2>
+      <h2 class="page-title">GTM 실습용 dataset</h2>
       <pre id="datasetPreview">{}</pre>
     </section>
   </main>
@@ -54,21 +54,20 @@
   <script>
     LAB.initCommon("product");
 
-    var sku = LAB.getQueryParam("sku") || "SKU_001";
-    var product = LAB.getProductById(sku);
+    var PRODUCT_ID = "SKU_003";
+    var product = LAB.getProductById(PRODUCT_ID);
     var productBox = document.getElementById("productBox");
     var datasetPreview = document.getElementById("datasetPreview");
     var allProducts = LAB.getProducts();
 
-    function renderProductLinks(currentSku) {
-      if (!allProducts.length) return "";
+    function renderProductLinks(currentId) {
       return (
         '<div class="panel" style="margin-bottom:10px;">' +
         '<div class="small" style="margin-bottom:8px;">다른 상품 상세로 이동</div>' +
         '<div class="pill-list">' +
         allProducts.map(function (p) {
-          var cls = p.item_id === currentSku ? "btn" : "btn secondary";
-          return '<a class="' + cls + '" href="product.html?sku=' + encodeURIComponent(p.item_id) + '">' + p.item_name + "</a>";
+          var cls = p.item_id === currentId ? "btn" : "btn secondary";
+          return '<a class="' + cls + '" href="' + LAB.getProductUrl(p.item_id) + '">' + p.item_name + '</a>';
         }).join("") +
         "</div>" +
         "</div>"
@@ -76,9 +75,7 @@
     }
 
     if (!product) {
-      productBox.innerHTML =
-        renderProductLinks("") +
-        '<p>상품을 찾을 수 없습니다.</p><a class="btn secondary" href="index.html">메인으로</a>';
+      productBox.innerHTML = '<p>상품 정보를 찾을 수 없습니다.</p><a class="btn secondary" href="index.html">메인으로</a>';
     } else {
       var quantityInputId = "qtyInput";
       var buttonId = "btnAddToCart";
@@ -88,26 +85,26 @@
         renderProductLinks(product.item_id) +
         '<div class="layout-grid two-col">' +
         '  <div class="panel">' +
-        "    <h2>" + product.item_name + "</h2>" +
+        '    <h2>' + product.item_name + '</h2>' +
         '    <div class="meta-list">' +
-        "      <span>SKU: " + product.item_id + "</span>" +
-        "      <span>Category: " + product.item_category + "</span>" +
-        "      <span>Variant: " + product.item_variant + "</span>" +
-        "    </div>" +
-        '    <div class="price" style="margin-top:10px;">' + LAB.formatMoney(product.price) + " KRW</div>" +
-        "  </div>" +
+        '      <span>SKU: ' + product.item_id + '</span>' +
+        '      <span>Category: ' + product.item_category + '</span>' +
+        '      <span>Variant: ' + product.item_variant + '</span>' +
+        '    </div>' +
+        '    <div class="price" style="margin-top:10px;">' + LAB.formatMoney(product.price) + ' KRW</div>' +
+        '  </div>' +
         '  <div class="panel">' +
         '    <div class="field">' +
         '      <label for="' + quantityInputId + '">수량</label>' +
         '      <input id="' + quantityInputId + '" type="number" min="1" value="1" />' +
-        "    </div>" +
+        '    </div>' +
         '    <div class="btn-row" style="margin-top:10px;">' +
         '      <button id="' + buttonId + '" class="btn" type="button">장바구니 담기 (push 누락)</button>' +
         '      <a class="btn secondary" href="cart.html">장바구니로 이동</a>' +
-        "    </div>" +
+        '    </div>' +
         '    <p id="productStatus" class="small" style="margin-top:10px;">버튼 클릭 시 장바구니에만 반영됩니다.</p>' +
-        "  </div>" +
-        "</div>";
+        '  </div>' +
+        '</div>';
 
       LAB.pushEcomEvent("view_item", {
         currency: LAB.currency,
@@ -129,7 +126,6 @@
           quantity: String(qty),
           variant: product.item_variant
         };
-
         addButton.dataset.sku = dataset.sku;
         addButton.dataset.name = dataset.name;
         addButton.dataset.price = dataset.price;
@@ -147,11 +143,9 @@
         var qty = Math.max(1, Number(qtyInput.value || 1));
         LAB.addToCart(LAB.buildItem(product, qty));
         document.getElementById("productStatus").textContent =
-          "장바구니에 " + qty + "개 담겼습니다. (add_to_cart push는 GTM에서 처리)";
+          '장바구니에 ' + qty + '개 담겼습니다. (add_to_cart push는 GTM에서 처리)';
       });
     }
   </script>
 </body>
 </html>
-
-

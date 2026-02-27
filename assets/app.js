@@ -11,7 +11,6 @@
 
   var DEFAULT_MODE = "standard";
   var CURRENCY = (window.LAB_DATA && window.LAB_DATA.currency) || "KRW";
-  var FALLBACK_PREFIX = "__LAB_STORE__:";
 
   function assign(target) {
     var to = target || {};
@@ -55,39 +54,9 @@
     }
   }
 
-  function readFallbackRoot() {
-    if (window.__LAB_WINDOW_STORE) return window.__LAB_WINDOW_STORE;
-
-    var root = { local: {}, session: {} };
-    try {
-      var raw = String(window.name || "");
-      if (raw.indexOf(FALLBACK_PREFIX) === 0) {
-        var parsed = safeJsonParse(raw.slice(FALLBACK_PREFIX.length), null);
-        if (parsed && typeof parsed === "object") {
-          root.local = parsed.local && typeof parsed.local === "object" ? parsed.local : {};
-          root.session = parsed.session && typeof parsed.session === "object" ? parsed.session : {};
-        }
-      }
-    } catch (err) {
-      root = { local: {}, session: {} };
-    }
-
-    window.__LAB_WINDOW_STORE = root;
-    return root;
-  }
-
-  function writeFallbackRoot(root) {
-    window.__LAB_WINDOW_STORE = root;
-    try {
-      window.name = FALLBACK_PREFIX + JSON.stringify(root);
-    } catch (err) {
-      // no-op
-    }
-  }
-
   function createStorageAdapter(type) {
     var nativeStorage = null;
-    var fallbackLogged = false;
+    var errorLogged = false;
     try {
       nativeStorage = type === "local" ? window.localStorage : window.sessionStorage;
       var testKey = "__lab_storage_test__";
@@ -97,78 +66,46 @@
       nativeStorage = null;
     }
 
-    function logFallback() {
-      if (fallbackLogged) return;
-      fallbackLogged = true;
-      console.warn("[LAB] " + type + "Storage unavailable. using window.name fallback store.");
-    }
-
-    function readFallbackBucket() {
-      var root = readFallbackRoot();
-      if (!root[type] || typeof root[type] !== "object") root[type] = {};
-      return root[type];
+    function logStorageError() {
+      if (errorLogged) return;
+      errorLogged = true;
+      console.error("[LAB] " + type + "Storage unavailable. fallback is disabled.");
     }
 
     return {
       isAvailable: !!nativeStorage,
       getItem: function (key) {
         if (!nativeStorage) {
-          logFallback();
-          var bucket = readFallbackBucket();
-          return Object.prototype.hasOwnProperty.call(bucket, key) ? bucket[key] : null;
+          logStorageError();
+          return null;
         }
         try {
           return nativeStorage.getItem(key);
         } catch (err) {
-          nativeStorage = null;
-          logFallback();
-          var bucketOnError = readFallbackBucket();
-          return Object.prototype.hasOwnProperty.call(bucketOnError, key) ? bucketOnError[key] : null;
+          logStorageError();
+          return null;
         }
       },
       setItem: function (key, value) {
-        var nextValue = String(value);
         if (!nativeStorage) {
-          logFallback();
-          var root = readFallbackRoot();
-          var bucket = readFallbackBucket();
-          bucket[key] = nextValue;
-          root[type] = bucket;
-          writeFallbackRoot(root);
+          logStorageError();
           return;
         }
         try {
-          nativeStorage.setItem(key, nextValue);
+          nativeStorage.setItem(key, String(value));
         } catch (err) {
-          nativeStorage = null;
-          logFallback();
-          var rootOnError = readFallbackRoot();
-          var bucketOnError = readFallbackBucket();
-          bucketOnError[key] = nextValue;
-          rootOnError[type] = bucketOnError;
-          writeFallbackRoot(rootOnError);
+          logStorageError();
         }
       },
       removeItem: function (key) {
         if (!nativeStorage) {
-          logFallback();
-          var root = readFallbackRoot();
-          var bucket = readFallbackBucket();
-          delete bucket[key];
-          root[type] = bucket;
-          writeFallbackRoot(root);
+          logStorageError();
           return;
         }
         try {
           nativeStorage.removeItem(key);
         } catch (err) {
-          nativeStorage = null;
-          logFallback();
-          var rootOnError = readFallbackRoot();
-          var bucketOnError = readFallbackBucket();
-          delete bucketOnError[key];
-          rootOnError[type] = bucketOnError;
-          writeFallbackRoot(rootOnError);
+          logStorageError();
         }
       }
     };
@@ -182,26 +119,17 @@
   }
 
   function setMode() {
-    var nextMode = DEFAULT_MODE;
+    var eventObj;
+    try {
+      eventObj = new CustomEvent("lab:modechange", { detail: { mode: DEFAULT_MODE } });
+    } catch (err) {
+      eventObj = document.createEvent("CustomEvent");
+      eventObj.initCustomEvent("lab:modechange", false, false, { mode: DEFAULT_MODE });
+    }
+    document.dispatchEvent(eventObj);
     syncModeSelectors();
     syncModeBadges();
     renderDebugPanel();
-    var eventObj;
-    try {
-      eventObj = new CustomEvent("lab:modechange", { detail: { mode: nextMode } });
-    } catch (err) {
-      eventObj = document.createEvent("CustomEvent");
-      eventObj.initCustomEvent("lab:modechange", false, false, { mode: nextMode });
-    }
-    document.dispatchEvent(eventObj);
-  }
-
-  function toUpperSnake(value) {
-    return String(value || "")
-      .replace(/[^a-zA-Z0-9]+/g, "_")
-      .replace(/^_+|_+$/g, "")
-      .replace(/_+/g, "_")
-      .toUpperCase();
   }
 
   function mapEventName(eventName) {
@@ -242,18 +170,12 @@
     window.dataLayer = window.dataLayer || [];
     if (window.dataLayer.__labWrapped) return;
 
-    if (window.dataLayer.length) {
-      window.dataLayer.forEach(function (existingPush) {
-        recordPush(existingPush);
-      });
-    }
-
     var originalPush = window.dataLayer.push.bind(window.dataLayer);
     window.dataLayer.push = function () {
       var args = Array.prototype.slice.call(arguments);
-      args.forEach(function (entry) {
-        recordPush(entry);
-      });
+      for (var i = 0; i < args.length; i += 1) {
+        recordPush(args[i]);
+      }
       if (isConsoleLoggingEnabled()) {
         console.log("[LAB dataLayer.push]", args);
       }
@@ -267,8 +189,7 @@
   function dlPush(payload) {
     window.dataLayer = window.dataLayer || [];
     if (typeof window.dataLayer.push !== "function") {
-      window.dataLayer = [];
-      wrapDataLayerPush();
+      throw new Error("dataLayer.push is not available");
     }
     window.dataLayer.push(payload);
   }
@@ -289,6 +210,14 @@
     return pushEvent(eventName, payload || {});
   }
 
+  function mustPushEcomEvent(eventName, payload) {
+    var result = pushEcomEvent(eventName, payload || {});
+    if (!result || result.event !== eventName) {
+      throw new Error("mustPushEcomEvent failed: " + eventName);
+    }
+    return result;
+  }
+
   function getProducts() {
     var products = (window.LAB_DATA && window.LAB_DATA.products) || [];
     return deepClone(products);
@@ -300,6 +229,18 @@
       if (products[i].item_id === itemId) return products[i];
     }
     return null;
+  }
+
+  function getProductUrl(itemId) {
+    var product = getProductById(itemId);
+    if (!product) throw new Error("Unknown product id: " + itemId);
+    var slug = product.slug;
+    if (!slug) {
+      var digits = String(product.item_id || "").replace(/[^0-9]/g, "");
+      if (!digits) throw new Error("Cannot build product URL: " + itemId);
+      slug = "sku-" + digits.slice(-3);
+    }
+    return "product-" + slug + ".html";
   }
 
   function buildItem(product, quantity, extra) {
@@ -322,8 +263,7 @@
   }
 
   function formatMoney(value) {
-    var numberValue = Number(value || 0);
-    return new Intl.NumberFormat("ko-KR").format(numberValue);
+    return new Intl.NumberFormat("ko-KR").format(Number(value || 0));
   }
 
   function getCart() {
@@ -358,10 +298,8 @@
         break;
       }
     }
-
     if (index >= 0) {
-      cart[index].quantity =
-        Number(cart[index].quantity || 0) + Number(item.quantity || 1);
+      cart[index].quantity = Number(cart[index].quantity || 0) + Number(item.quantity || 1);
     } else {
       cart.push(deepClone(item));
     }
@@ -377,13 +315,8 @@
 
   function generateTransactionId() {
     var date = new Date();
-    var year = date.getFullYear();
-    var month = leftPad2(date.getMonth() + 1);
-    var day = leftPad2(date.getDate());
-    var hour = leftPad2(date.getHours());
-    var minute = leftPad2(date.getMinutes());
-    var second = leftPad2(date.getSeconds());
-    var stamp = "" + year + month + day + hour + minute + second;
+    var stamp = "" + date.getFullYear() + leftPad2(date.getMonth() + 1) + leftPad2(date.getDate()) +
+      leftPad2(date.getHours()) + leftPad2(date.getMinutes()) + leftPad2(date.getSeconds());
     var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     var random = "";
     for (var i = 0; i < 8; i += 1) {
@@ -470,35 +403,27 @@
     container.innerHTML =
       '<button id="labDebugToggle" class="lab-debug-toggle" type="button">Debug Panel</button>' +
       '<aside id="labDebugPanel" class="lab-debug-panel" hidden>' +
-      '  <div class="lab-debug-header">' +
-      '    <strong>Debug Panel</strong>' +
-      '    <button id="labDebugClose" type="button" class="lab-debug-close">Close</button>' +
-      "  </div>" +
-      '  <div class="lab-debug-grid">' +
-      '    <section><h4>Current Mode</h4><pre id="labDebugMode"></pre></section>' +
-      '    <section><h4>Cart State</h4><pre id="labDebugCart"></pre></section>' +
-      '    <section class="wide"><h4>Latest dataLayer.push (20)</h4><pre id="labDebugHistory"></pre></section>' +
-      "  </div>" +
-      '  <label class="lab-debug-console">' +
-      '    <input id="labDebugConsole" type="checkbox" /> Console log dataLayer.push' +
-      "  </label>" +
-      "</aside>";
+      '<div class="lab-debug-header"><strong>Debug Panel</strong>' +
+      '<button id="labDebugClose" type="button" class="lab-debug-close">Close</button></div>' +
+      '<div class="lab-debug-grid">' +
+      '<section><h4>Current Mode</h4><pre id="labDebugMode"></pre></section>' +
+      '<section><h4>Cart State</h4><pre id="labDebugCart"></pre></section>' +
+      '<section class="wide"><h4>Latest dataLayer.push (20)</h4><pre id="labDebugHistory"></pre></section>' +
+      '</div>' +
+      '<label class="lab-debug-console"><input id="labDebugConsole" type="checkbox" /> Console log dataLayer.push</label>' +
+      '</aside>';
     document.body.appendChild(container);
 
     var panel = document.getElementById("labDebugPanel");
-    var toggle = document.getElementById("labDebugToggle");
-    var close = document.getElementById("labDebugClose");
-    var consoleCheckbox = document.getElementById("labDebugConsole");
-
-    toggle.addEventListener("click", function () {
+    document.getElementById("labDebugToggle").addEventListener("click", function () {
       panel.hidden = !panel.hidden;
       if (!panel.hidden) renderDebugPanel();
     });
-    close.addEventListener("click", function () {
+    document.getElementById("labDebugClose").addEventListener("click", function () {
       panel.hidden = true;
     });
-    consoleCheckbox.addEventListener("change", function () {
-      setConsoleLogging(consoleCheckbox.checked);
+    document.getElementById("labDebugConsole").addEventListener("change", function (event) {
+      setConsoleLogging(event.target.checked);
     });
   }
 
@@ -510,17 +435,13 @@
     if (!modeEl || !cartEl || !historyEl || !checkbox) return;
 
     var cart = getCart();
-    var mode = getMode();
-    var history = getDlHistory();
-    var cartState = {
+    modeEl.textContent = JSON.stringify({ mode: getMode() }, null, 2);
+    cartEl.textContent = JSON.stringify({
       count: getCartCount(),
       value: calcValue(cart),
       items: cart
-    };
-
-    modeEl.textContent = JSON.stringify({ mode: mode }, null, 2);
-    cartEl.textContent = JSON.stringify(cartState, null, 2);
-    historyEl.textContent = JSON.stringify(history, null, 2);
+    }, null, 2);
+    historyEl.textContent = JSON.stringify(getDlHistory(), null, 2);
     checkbox.checked = isConsoleLoggingEnabled();
     syncModeBadges();
   }
@@ -544,8 +465,10 @@
     mapEventName: mapEventName,
     pushEvent: pushEvent,
     pushEcomEvent: pushEcomEvent,
+    mustPushEcomEvent: mustPushEcomEvent,
     getProducts: getProducts,
     getProductById: getProductById,
+    getProductUrl: getProductUrl,
     buildItem: buildItem,
     calcValue: calcValue,
     formatMoney: formatMoney,

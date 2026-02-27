@@ -23,7 +23,7 @@
     </div>
     <nav class="container page-nav">
       <a href="index.html" data-nav-page="index">Home</a>
-      <a href="product.html?sku=SKU_001" data-nav-page="product">Product</a>
+      <a href="product-sku-001.html" data-nav-page="product">Product</a>
       <a href="cart.html" data-nav-page="cart">Cart</a>
       <a href="checkout.html" data-nav-page="checkout">Checkout</a>
       <a href="thankyou.html" data-nav-page="thankyou">Thankyou</a>
@@ -93,7 +93,8 @@
         '  <a class="btn secondary" href="index.html">쇼핑 계속</a>' +
         '  <button class="btn accent" id="btnCheckout" type="button">주문하기 (begin_checkout)</button>' +
         '  <button class="btn danger" id="btnClearCart" type="button">장바구니 비우기</button>' +
-        "</div>";
+        "</div>" +
+        '<p id="cartStatus" class="small" style="margin-top:10px;"></p>';
 
       cartContent.querySelectorAll("[data-qty-index]").forEach(function (input) {
         input.addEventListener("change", function () {
@@ -124,12 +125,18 @@
       document.getElementById("btnCheckout").addEventListener("click", function () {
         var currentCart = LAB.getCart();
         if (!currentCart.length) return;
-        LAB.pushEcomEvent("begin_checkout", {
-          currency: LAB.currency,
-          value: LAB.calcValue(currentCart),
-          ecommerce: { items: currentCart }
-        });
-        window.location.href = "checkout.html";
+        var status = document.getElementById("cartStatus");
+        status.textContent = "";
+        try {
+          LAB.pushEcomEvent("begin_checkout", {
+            currency: LAB.currency,
+            value: LAB.calcValue(currentCart),
+            ecommerce: { items: currentCart }
+          });
+          window.location.href = "checkout.html";
+        } catch (err) {
+          status.textContent = "begin_checkout push 실패로 이동이 차단되었습니다.";
+        }
       });
     }
 
@@ -137,5 +144,6 @@
   </script>
 </body>
 </html>
+
 
 
