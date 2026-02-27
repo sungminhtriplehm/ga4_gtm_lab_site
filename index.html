@@ -41,22 +41,76 @@
   </header>
 
   <main class="container">
-    <section class="panel hero">
-      <div>
-        <h1 class="page-title">메인 상품 리스트</h1>
+    <section class="intro-layout">
+      <article class="intro-card">
+        <h1 class="intro-title">GA4 + GTM 전자상거래 실습 사이트</h1>
         <p class="small">
-          이 페이지는 로드 시 <code>view_item_list</code> 1회, 상품 카드 클릭 시 <code>select_item</code>,
-          빠른 담기 시 <code>add_to_cart</code>를 전송합니다.
+          첫 방문자는 아래 순서대로 실습하면 됩니다. 이 페이지에서는
+          <code>view_item_list</code>, <code>select_item</code>, <code>add_to_cart</code>
+          흐름을 시작합니다.
         </p>
-      </div>
-      <div class="hint">
-        <strong>실습 목표</strong><br />
-        메인 → 상세 → 장바구니 → 체크아웃 → 구매완료 흐름을 GTM Preview와 GA4 DebugView에서 확인하세요.
+        <div class="flow-steps">
+          <div class="flow-step">1) 상품 카드 클릭: <code>select_item</code></div>
+          <div class="flow-step">2) 장바구니로 이동: <code>view_cart</code>, <code>begin_checkout</code></div>
+          <div class="flow-step">3) 체크아웃: <code>add_shipping_info</code>, <code>add_payment_info</code></div>
+          <div class="flow-step">4) 구매완료: GTM Custom HTML로 <code>purchase</code> push</div>
+        </div>
+      </article>
+      <article class="intro-card">
+        <h3>현재 상태 확인</h3>
+        <div class="status-list">
+          <div class="status-item">
+            Tracking Mode: <strong data-current-mode>standard</strong>
+          </div>
+          <div class="status-item">
+            Cart Count: <strong data-cart-count>0</strong>
+          </div>
+          <div class="status-item">
+            하단 Debug Panel에서 최근 dataLayer push 20개를 확인하세요.
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top:10px;">
+          <a class="btn secondary" href="builder.html">빌더 매핑 보기</a>
+          <a class="btn secondary" href="buttons.html">버튼 추적 실습</a>
+        </div>
+      </article>
+    </section>
+
+    <section class="panel event-checklist" style="margin-top:14px;">
+      <h2 class="page-title">이벤트 체크리스트 (메인 기준)</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>행동</th>
+              <th>기본 이벤트명</th>
+              <th>빌더 모드 예시</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>페이지 로드</td>
+              <td><code>view_item_list</code></td>
+              <td><code>CAFE24_VIEW_ITEM_LIST</code> 등</td>
+            </tr>
+            <tr>
+              <td>상세 보기 클릭</td>
+              <td><code>select_item</code></td>
+              <td><code>MAKESHOP_SELECT_ITEM</code> 등</td>
+            </tr>
+            <tr>
+              <td>빠른 담기 클릭</td>
+              <td><code>add_to_cart</code></td>
+              <td><code>GODOMALL_ADD_TO_CART</code> 등</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
     <section class="panel" style="margin-top:14px;">
-      <h2 class="page-title">상품</h2>
+      <h2 class="page-title">상품 리스트</h2>
+      <p class="small">카드의 "상세 보기"는 <code>select_item</code>, "빠른 담기"는 <code>add_to_cart</code>를 전송합니다.</p>
       <div id="productList" class="product-grid"></div>
     </section>
   </main>
@@ -72,6 +126,14 @@
     var products = LAB.getProducts();
     var listItems = [];
 
+    if (!products.length) {
+      listContainer.innerHTML =
+        '<article class="panel">' +
+        "<h3>상품 데이터가 비어 있습니다.</h3>" +
+        '<p class="small">assets/data.js 로드 상태를 확인하세요.</p>' +
+        "</article>";
+    }
+
     products.forEach(function (product, index) {
       var item = LAB.buildItem(product, 1, {
         item_list_id: LIST_ID,
@@ -84,9 +146,10 @@
       card.className = "product-card";
       card.innerHTML =
         "<h3>" + product.item_name + "</h3>" +
+        '<div class="subline">실습용 더미 상품</div>' +
         '<div class="meta-list">' +
-        "<span>SKU: " + product.item_id + "</span>" +
-        "<span>Category: " + product.item_category + "</span>" +
+        '<span class="tag">SKU: ' + product.item_id + "</span>" +
+        '<span class="tag">Category: ' + product.item_category + "</span>" +
         "</div>" +
         '<div class="price">' + LAB.formatMoney(product.price) + " KRW</div>" +
         '<div class="btn-row">' +
@@ -118,13 +181,15 @@
       listContainer.appendChild(card);
     });
 
-    LAB.pushEcomEvent("view_item_list", {
-      currency: LAB.currency,
-      value: LAB.calcValue(listItems),
-      item_list_id: LIST_ID,
-      item_list_name: LIST_NAME,
-      ecommerce: { items: listItems }
-    });
+    if (listItems.length) {
+      LAB.pushEcomEvent("view_item_list", {
+        currency: LAB.currency,
+        value: LAB.calcValue(listItems),
+        item_list_id: LIST_ID,
+        item_list_name: LIST_NAME,
+        ecommerce: { items: listItems }
+      });
+    }
   </script>
 </body>
 </html>

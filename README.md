@@ -3,6 +3,20 @@
 정적 HTML 기반 GA4/GTM 실습용 미니 커머스 사이트입니다.  
 백엔드/DB 없이 `dataLayer` 중심으로 이벤트를 다룹니다.
 
+## 빠른 GA4 + GTM 설정 가이드 (간단)
+
+1. GTM 컨테이너 생성 후 각 페이지의 슬롯에 스니펫 삽입
+   - `<head>`: `<!-- GTM_HEAD_SLOT -->`
+   - `<body>` 시작 직후: `<!-- GTM_BODY_SLOT -->`
+2. GTM에서 GA4 Configuration 태그 1개 생성 (모든 페이지)
+3. Data Layer Variable 생성
+   - `event`, `ecommerce.items`, `value`, `currency`, `transaction_id`
+4. GA4 Event 태그 생성
+   - 표준 이벤트명 기준(`view_item_list`, `select_item` 등)
+5. 누락 지점 3곳은 Custom HTML 태그로 `dataLayer.push` 실습
+   - `product.html` add_to_cart, `thankyou.html` purchase, `form.html` form_submit
+6. GTM Preview + GA4 DebugView로 동작 확인
+
 ## 페이지 구성
 
 - `index.html`: 메인 상품 리스트

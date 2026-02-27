@@ -18,6 +18,7 @@
   };
   var DEFAULT_MODE = "standard";
   var CURRENCY = (window.LAB_DATA && window.LAB_DATA.currency) || "KRW";
+  var FALLBACK_PREFIX = "__LAB_STORE__:";
 
   function safeJsonParse(value, fallback) {
     try {
@@ -35,26 +36,125 @@
     }
   }
 
+  function readFallbackRoot() {
+    if (window.__LAB_WINDOW_STORE) return window.__LAB_WINDOW_STORE;
+
+    var root = { local: {}, session: {} };
+    try {
+      var raw = String(window.name || "");
+      if (raw.indexOf(FALLBACK_PREFIX) === 0) {
+        var parsed = safeJsonParse(raw.slice(FALLBACK_PREFIX.length), null);
+        if (parsed && typeof parsed === "object") {
+          root.local = parsed.local && typeof parsed.local === "object" ? parsed.local : {};
+          root.session = parsed.session && typeof parsed.session === "object" ? parsed.session : {};
+        }
+      }
+    } catch (err) {
+      root = { local: {}, session: {} };
+    }
+
+    window.__LAB_WINDOW_STORE = root;
+    return root;
+  }
+
+  function writeFallbackRoot(root) {
+    window.__LAB_WINDOW_STORE = root;
+    try {
+      window.name = FALLBACK_PREFIX + JSON.stringify(root);
+    } catch (err) {
+      // no-op
+    }
+  }
+
+  function createStorageAdapter(type) {
+    var nativeStorage = null;
+    try {
+      nativeStorage = type === "local" ? window.localStorage : window.sessionStorage;
+      var testKey = "__lab_storage_test__";
+      nativeStorage.setItem(testKey, "1");
+      nativeStorage.removeItem(testKey);
+    } catch (err) {
+      nativeStorage = null;
+    }
+
+    function readFallbackBucket() {
+      var root = readFallbackRoot();
+      if (!root[type] || typeof root[type] !== "object") root[type] = {};
+      return root[type];
+    }
+
+    return {
+      getItem: function (key) {
+        if (nativeStorage) {
+          try {
+            return nativeStorage.getItem(key);
+          } catch (err) {
+            nativeStorage = null;
+          }
+        }
+        var bucket = readFallbackBucket();
+        return Object.prototype.hasOwnProperty.call(bucket, key) ? bucket[key] : null;
+      },
+      setItem: function (key, value) {
+        var nextValue = String(value);
+        if (nativeStorage) {
+          try {
+            nativeStorage.setItem(key, nextValue);
+            return;
+          } catch (err) {
+            nativeStorage = null;
+          }
+        }
+        var root = readFallbackRoot();
+        var bucket = readFallbackBucket();
+        bucket[key] = nextValue;
+        root[type] = bucket;
+        writeFallbackRoot(root);
+      },
+      removeItem: function (key) {
+        if (nativeStorage) {
+          try {
+            nativeStorage.removeItem(key);
+            return;
+          } catch (err) {
+            nativeStorage = null;
+          }
+        }
+        var root = readFallbackRoot();
+        var bucket = readFallbackBucket();
+        delete bucket[key];
+        root[type] = bucket;
+        writeFallbackRoot(root);
+      }
+    };
+  }
+
+  var localStore = createStorageAdapter("local");
+  var sessionStore = createStorageAdapter("session");
+
   function normalizeMode(mode) {
     var candidate = String(mode || "").toLowerCase();
     return MODES.indexOf(candidate) >= 0 ? candidate : DEFAULT_MODE;
   }
 
   function getMode() {
-    return normalizeMode(localStorage.getItem(STORAGE.MODE));
+    return normalizeMode(localStore.getItem(STORAGE.MODE));
   }
 
   function setMode(mode) {
     var nextMode = normalizeMode(mode);
-    localStorage.setItem(STORAGE.MODE, nextMode);
+    localStore.setItem(STORAGE.MODE, nextMode);
     syncModeSelectors();
     syncModeBadges();
     renderDebugPanel();
-    document.dispatchEvent(
-      new CustomEvent("lab:modechange", {
-        detail: { mode: nextMode }
-      })
-    );
+    var eventObj;
+    try {
+      eventObj = new CustomEvent("lab:modechange", { detail: { mode: nextMode } });
+    } catch (err) {
+      eventObj = document.createEvent("CustomEvent");
+      eventObj.initCustomEvent("lab:modechange", false, false, { mode: nextMode });
+    }
+    document.dispatchEvent(eventObj);
   }
 
   function toUpperSnake(value) {
@@ -72,20 +172,20 @@
   }
 
   function getDlHistory() {
-    var raw = sessionStorage.getItem(STORAGE.DL_HISTORY);
+    var raw = sessionStore.getItem(STORAGE.DL_HISTORY);
     return safeJsonParse(raw, []);
   }
 
   function saveDlHistory(history) {
-    sessionStorage.setItem(STORAGE.DL_HISTORY, JSON.stringify(history));
+    sessionStore.setItem(STORAGE.DL_HISTORY, JSON.stringify(history));
   }
 
   function isConsoleLoggingEnabled() {
-    return localStorage.getItem(STORAGE.DEBUG_CONSOLE) === "1";
+    return localStore.getItem(STORAGE.DEBUG_CONSOLE) === "1";
   }
 
   function setConsoleLogging(flag) {
-    localStorage.setItem(STORAGE.DEBUG_CONSOLE, flag ? "1" : "0");
+    localStore.setItem(STORAGE.DEBUG_CONSOLE, flag ? "1" : "0");
     renderDebugPanel();
   }
 
@@ -183,12 +283,12 @@
   }
 
   function getCart() {
-    var raw = localStorage.getItem(STORAGE.CART);
+    var raw = localStore.getItem(STORAGE.CART);
     return safeJsonParse(raw, []);
   }
 
   function setCart(cart) {
-    localStorage.setItem(STORAGE.CART, JSON.stringify(cart || []));
+    localStore.setItem(STORAGE.CART, JSON.stringify(cart || []));
     updateCartBadge();
     renderDebugPanel();
   }
@@ -244,16 +344,16 @@
   }
 
   function savePendingOrder(order) {
-    sessionStorage.setItem(STORAGE.PENDING_ORDER, JSON.stringify(order));
+    sessionStore.setItem(STORAGE.PENDING_ORDER, JSON.stringify(order));
   }
 
   function getPendingOrder() {
-    var raw = sessionStorage.getItem(STORAGE.PENDING_ORDER);
+    var raw = sessionStore.getItem(STORAGE.PENDING_ORDER);
     return safeJsonParse(raw, null);
   }
 
   function clearPendingOrder() {
-    sessionStorage.removeItem(STORAGE.PENDING_ORDER);
+    sessionStore.removeItem(STORAGE.PENDING_ORDER);
   }
 
   function getQueryParam(name) {

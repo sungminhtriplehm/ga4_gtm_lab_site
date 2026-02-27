@@ -174,6 +174,65 @@ main {
   gap: 14px;
 }
 
+.intro-layout {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 14px;
+}
+
+.intro-title {
+  margin: 0 0 8px;
+  font-size: 28px;
+  line-height: 1.2;
+}
+
+.intro-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: #fff;
+  padding: 14px;
+}
+
+.intro-card h3 {
+  margin: 0 0 8px;
+}
+
+.flow-steps {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.flow-step {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fcfbf7;
+  padding: 9px 10px;
+  font-size: 13px;
+}
+
+.status-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.status-item {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  padding: 9px 10px;
+  font-size: 13px;
+}
+
+.event-checklist {
+  margin-top: 12px;
+}
+
+.event-checklist code {
+  font-size: 12px;
+}
+
 .code-block,
 pre {
   margin: 0;
@@ -203,6 +262,11 @@ pre {
 .product-card h3 {
   margin: 0;
   font-size: 17px;
+}
+
+.product-card .subline {
+  font-size: 13px;
+  color: var(--muted);
 }
 
 .meta-list {
@@ -242,6 +306,11 @@ pre {
 .btn.danger {
   border-color: var(--danger);
   background: var(--danger);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .price {
@@ -285,6 +354,16 @@ th {
   padding: 5px 10px;
   background: #fff;
   font-size: 12px;
+}
+
+.tag {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 11px;
+  background: #fff;
+  color: var(--muted);
 }
 
 .field-grid {
@@ -428,6 +507,7 @@ th {
 @media (max-width: 900px) {
   .product-grid,
   .hero,
+  .intro-layout,
   .field-grid,
   .three-col,
   .two-col {

@@ -58,6 +58,7 @@
 
     var container = document.getElementById("checkoutContent");
     var cart = LAB.getCart();
+    var isPlacingOrder = false;
 
     if (!cart.length) {
       container.innerHTML =
@@ -131,6 +132,13 @@
       });
 
       document.getElementById("btnPlaceOrder").addEventListener("click", function () {
+        if (isPlacingOrder) return;
+        isPlacingOrder = true;
+
+        var placeOrderButton = document.getElementById("btnPlaceOrder");
+        placeOrderButton.disabled = true;
+        placeOrderButton.textContent = "주문 처리 중...";
+
         var shippingTier = document.getElementById("shippingTier").value;
         var paymentType = document.getElementById("paymentType").value;
         var order = {
