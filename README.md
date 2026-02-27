@@ -14,7 +14,7 @@
 - `form.html`: 폼 추적 실습
 - `buttons.html`: 버튼 클릭 추적 실습 + 실시간 이벤트 로그
 - `builder.html`: 플랫폼 DOM 구조 참고 페이지
-- `gtm-setup.html`: GTM 전체 스니펫 1회 설정/초기화 페이지
+- `gtm-setup.html`: GTM head/body 스니펫 1회 설정/초기화 페이지
 
 ## 전자상거래 이벤트 발생 지점
 
@@ -69,8 +69,10 @@
 
 ## GTM 최소 셋업 체크리스트
 
-1. `gtm-setup.html`에서 공식 GTM 전체 스니펫(head + noscript) 입력 후 `저장/적용`
-   - `googletagmanager.com` 도메인만 허용
+1. `gtm-setup.html`에서 스니펫 입력 후 `저장/적용`
+   - Head 스니펫: 필수 (입력한 코드 그대로 `</head>` 직전에 주입)
+   - Body 스니펫: 선택
+   - `googletagmanager.com` 기반 스니펫만 허용
    - 저장 후 모든 페이지에서 자동 주입
 2. 필요 시 `gtm-setup.html`의 `초기화` 버튼으로 원복
    - localStorage 설정 삭제
@@ -101,8 +103,8 @@
   - `raw_snippet`
   - `saved_at`
 - 자동 적용:
-  - head: `assets/gtm-head-bootstrap.js`가 `gtm.js` script 주입
-  - body: `LAB.applyGtmBodySnippet()`가 noscript iframe 주입
+  - head: `assets/gtm-head-bootstrap.js`가 저장된 head 스니펫을 그대로 `</head>` 직전에 주입
+  - body: `LAB.applyGtmBodySnippet()`가 저장된 body 스니펫을 `<body>` 시작부에 주입(입력한 경우)
 - 주의:
   - 이 기능은 브라우저 저장소(localStorage) 기준이므로 브라우저/프로필별로 설정이 다를 수 있음
 

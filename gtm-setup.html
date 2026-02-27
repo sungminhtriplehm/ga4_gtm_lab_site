@@ -39,16 +39,21 @@
     <section class="panel">
       <h1 class="page-title">GTM 1회 삽입 설정</h1>
       <p class="small">
-        공식 GTM 전체 스니펫(head + noscript)을 그대로 붙여넣고 저장하세요.
-        저장 후부터는 코드 수정이나 git push 없이 이 브라우저에서 자동 적용됩니다.
+        head 스니펫은 필수이며, 입력한 코드를 그대로 <code>&lt;/head&gt;</code> 직전에 주입합니다.
+        body 스니펫은 선택 입력입니다.
       </p>
       <p class="small">
-        검증 정책: <code>googletagmanager.com</code> 도메인만 허용됩니다.
+        저장 후에는 코드 수정이나 git push 없이 이 브라우저에서 자동 적용됩니다.
       </p>
 
       <div class="field" style="margin-top:12px;">
-        <label for="gtmSnippetInput">전체 GTM 스니펫 입력</label>
-        <textarea id="gtmSnippetInput" rows="14" placeholder="<!-- Google Tag Manager --> ... <!-- End Google Tag Manager -->"></textarea>
+        <label for="gtmHeadSnippetInput">Head 스니펫 (필수)</label>
+        <textarea id="gtmHeadSnippetInput" rows="10" placeholder="<!-- Google Tag Manager --> ... <!-- End Google Tag Manager -->"></textarea>
+      </div>
+
+      <div class="field" style="margin-top:12px;">
+        <label for="gtmBodySnippetInput">Body 스니펫 (선택)</label>
+        <textarea id="gtmBodySnippetInput" rows="6" placeholder="<noscript><iframe ...></iframe></noscript>"></textarea>
       </div>
 
       <div class="btn-row" style="margin-top:12px;">
@@ -71,7 +76,8 @@
   <script>
     LAB.initCommon("gtm-setup");
 
-    var inputEl = document.getElementById("gtmSnippetInput");
+    var headInputEl = document.getElementById("gtmHeadSnippetInput");
+    var bodyInputEl = document.getElementById("gtmBodySnippetInput");
     var statusEl = document.getElementById("gtmSetupStatus");
     var previewEl = document.getElementById("gtmConfigPreview");
 
@@ -90,20 +96,23 @@
 
       previewEl.textContent = JSON.stringify({
         container_id: config.container_id,
-        head_script_src: config.head_script_src,
-        body_iframe_src: config.body_iframe_src,
-        saved_at: config.saved_at
+        saved_at: config.saved_at,
+        head_snippet: config.head_snippet,
+        body_snippet: config.body_snippet || ""
       }, null, 2);
 
-      if (!inputEl.value.trim() && config.raw_snippet) {
-        inputEl.value = config.raw_snippet;
+      if (!headInputEl.value.trim()) {
+        headInputEl.value = config.raw_head_snippet || config.head_snippet || "";
+      }
+      if (!bodyInputEl.value.trim()) {
+        bodyInputEl.value = config.raw_body_snippet || config.body_snippet || "";
       }
       setStatus("현재 설정이 로드되었습니다. container_id: " + config.container_id, false);
     }
 
     document.getElementById("btnSaveGtm").addEventListener("click", function () {
       try {
-        var parsed = LAB.validateAndParseGtmSnippet(inputEl.value);
+        var parsed = LAB.validateAndParseGtmSnippet(headInputEl.value, bodyInputEl.value);
         LAB.saveGtmConfig(parsed);
         LAB.applyGtmBodySnippet();
         renderCurrentConfig();
@@ -119,7 +128,8 @@
 
     document.getElementById("btnClearGtm").addEventListener("click", function () {
       LAB.clearGtmConfig();
-      inputEl.value = "";
+      headInputEl.value = "";
+      bodyInputEl.value = "";
       previewEl.textContent = "{}";
       setStatus("초기화 완료. 기본 상태로 복귀합니다.", false);
       window.setTimeout(function () {
@@ -131,5 +141,3 @@
   </script>
 </body>
 </html>
-
-

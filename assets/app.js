@@ -12,8 +12,8 @@
 
   var DEFAULT_MODE = "standard";
   var CURRENCY = (window.LAB_DATA && window.LAB_DATA.currency) || "KRW";
-  var GTM_HEAD_SCRIPT_ID = "labGtmHeadScript";
-  var GTM_BODY_SNIPPET_ID = "labGtmBodySnippet";
+  var GTM_HEAD_MARKER_ATTR = "data-lab-gtm-head";
+  var GTM_BODY_MARKER_ATTR = "data-lab-gtm-body";
 
   function assign(target) {
     var to = target || {};
@@ -166,24 +166,149 @@
   var localStore = createStorageAdapter("local");
   var sessionStore = createStorageAdapter("session");
 
+  function extractContainerIds(text) {
+    var ids = String(text || "").match(/GTM-[A-Z0-9]+/gi) || [];
+    var uniqueIds = [];
+    for (var i = 0; i < ids.length; i += 1) {
+      var id = String(ids[i]).toUpperCase();
+      if (uniqueIds.indexOf(id) === -1) uniqueIds.push(id);
+    }
+    return uniqueIds;
+  }
+
+  function normalizeSnippet(text) {
+    return String(text || "").trim();
+  }
+
+  function materializeSnippetNode(node, markerAttr) {
+    if (node.nodeType === 3) {
+      return document.createTextNode(node.textContent || "");
+    }
+    if (node.nodeType === 8) {
+      return document.createComment(node.textContent || "");
+    }
+    if (node.nodeType !== 1) {
+      return null;
+    }
+
+    if (node.tagName === "SCRIPT") {
+      var script = document.createElement("script");
+      for (var i = 0; i < node.attributes.length; i += 1) {
+        var attr = node.attributes[i];
+        script.setAttribute(attr.name, attr.value);
+      }
+      script.setAttribute(markerAttr, "1");
+      script.text = node.text || node.textContent || "";
+      return script;
+    }
+
+    var clone = node.cloneNode(true);
+    clone.setAttribute(markerAttr, "1");
+    return clone;
+  }
+
+  function injectHtmlSnippet(parent, snippetHtml, markerAttr, insertAtTop) {
+    if (!parent) return false;
+    var html = normalizeSnippet(snippetHtml);
+    if (!html) return false;
+
+    var template = document.createElement("template");
+    template.innerHTML = html;
+    var nodes = Array.prototype.slice.call(template.content.childNodes);
+    if (!nodes.length) return false;
+
+    var referenceNode = insertAtTop ? parent.firstChild : null;
+    for (var i = 0; i < nodes.length; i += 1) {
+      var materialized = materializeSnippetNode(nodes[i], markerAttr);
+      if (!materialized) continue;
+      if (insertAtTop) {
+        parent.insertBefore(materialized, referenceNode);
+      } else {
+        parent.appendChild(materialized);
+      }
+    }
+    return true;
+  }
+
+  function removeInjectedNodes(markerAttr) {
+    forEachNode("[" + markerAttr + "]", function (node) {
+      if (node.parentNode) {
+        node.parentNode.removeChild(node);
+      }
+    });
+  }
+
+  function migrateLegacyGtmConfig(config) {
+    if (!config || typeof config !== "object") return null;
+    if (config.head_snippet) return config;
+    if (!config.head_script_src) return config;
+
+    var containerId = String(config.container_id || extractContainerIdFromUrl(config.head_script_src) || "").toUpperCase();
+    var headSnippet = '<script async src="' + normalizeUrl(config.head_script_src) + '"></script>';
+    var bodySnippet = "";
+    if (config.body_iframe_src) {
+      bodySnippet =
+        '<noscript><iframe src="' + normalizeUrl(config.body_iframe_src) +
+        '" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>';
+    }
+
+    return {
+      container_id: containerId,
+      head_snippet: headSnippet,
+      body_snippet: bodySnippet,
+      raw_head_snippet: config.raw_snippet || headSnippet,
+      raw_body_snippet: bodySnippet,
+      saved_at: config.saved_at || new Date().toISOString()
+    };
+  }
+
   function isValidGtmConfig(config) {
     if (!config || typeof config !== "object") return false;
-    if (!/^GTM-[A-Z0-9]+$/.test(String(config.container_id || "").toUpperCase())) return false;
-    if (!isAllowedGtmScriptSrc(config.head_script_src || "")) return false;
-    if (!isAllowedGtmIframeSrc(config.body_iframe_src || "")) return false;
 
     var containerId = String(config.container_id || "").toUpperCase();
-    var scriptId = extractContainerIdFromUrl(config.head_script_src || "");
-    var iframeId = extractContainerIdFromUrl(config.body_iframe_src || "");
-    if (scriptId && scriptId !== containerId) return false;
-    if (iframeId && iframeId !== containerId) return false;
+    if (!/^GTM-[A-Z0-9]+$/.test(containerId)) return false;
+
+    var headSnippet = normalizeSnippet(config.head_snippet);
+    if (!headSnippet) return false;
+    if (headSnippet.indexOf("googletagmanager.com") === -1) return false;
+
+    var headIds = extractContainerIds(headSnippet);
+    if (headIds.indexOf(containerId) === -1) return false;
+
+    var headScriptSrcs = extractAttributeUrls(headSnippet, "script", "src");
+    for (var i = 0; i < headScriptSrcs.length; i += 1) {
+      if (!isAllowedGtmScriptSrc(headScriptSrcs[i])) return false;
+    }
+
+    var headIframeSrcs = extractAttributeUrls(headSnippet, "iframe", "src");
+    for (var j = 0; j < headIframeSrcs.length; j += 1) {
+      if (!isAllowedGtmIframeSrc(headIframeSrcs[j])) return false;
+    }
+
+    var bodySnippet = normalizeSnippet(config.body_snippet);
+    if (bodySnippet) {
+      if (bodySnippet.indexOf("googletagmanager.com/ns.html") === -1) return false;
+
+      var bodyIds = extractContainerIds(bodySnippet);
+      if (bodyIds.length && bodyIds.indexOf(containerId) === -1) return false;
+
+      var bodyScriptSrcs = extractAttributeUrls(bodySnippet, "script", "src");
+      for (var k = 0; k < bodyScriptSrcs.length; k += 1) {
+        if (!isAllowedGtmScriptSrc(bodyScriptSrcs[k])) return false;
+      }
+
+      var bodyIframeSrcs = extractAttributeUrls(bodySnippet, "iframe", "src");
+      for (var m = 0; m < bodyIframeSrcs.length; m += 1) {
+        if (!isAllowedGtmIframeSrc(bodyIframeSrcs[m])) return false;
+      }
+    }
 
     return true;
   }
 
   function getGtmConfig() {
     var raw = localStore.getItem(STORAGE.GTM_CONFIG);
-    var parsed = safeJsonParse(raw, null);
+    var parsed = migrateLegacyGtmConfig(safeJsonParse(raw, null));
     if (!isValidGtmConfig(parsed)) {
       if (raw !== null) {
         localStore.removeItem(STORAGE.GTM_CONFIG);
@@ -194,143 +319,119 @@
   }
 
   function saveGtmConfig(config) {
-    if (!isValidGtmConfig(config)) {
-      throw new Error("유효한 GTM 설정 형식이 아닙니다.");
+    var normalized = migrateLegacyGtmConfig(config);
+    if (!isValidGtmConfig(normalized)) {
+      throw new Error("??? GTM ?? ??? ????.");
     }
-    localStore.setItem(STORAGE.GTM_CONFIG, JSON.stringify(config));
-    return config;
+    localStore.setItem(STORAGE.GTM_CONFIG, JSON.stringify(normalized));
+    return normalized;
   }
 
   function clearGtmConfig() {
     localStore.removeItem(STORAGE.GTM_CONFIG);
+    removeInjectedNodes(GTM_HEAD_MARKER_ATTR);
+    removeInjectedNodes(GTM_BODY_MARKER_ATTR);
 
-    var bodySnippet = document.getElementById(GTM_BODY_SNIPPET_ID);
-    if (bodySnippet && bodySnippet.parentNode) {
-      bodySnippet.parentNode.removeChild(bodySnippet);
+    var legacyHeadScript = document.getElementById("labGtmHeadScript");
+    if (legacyHeadScript && legacyHeadScript.parentNode) {
+      legacyHeadScript.parentNode.removeChild(legacyHeadScript);
     }
-
-    var headScript = document.getElementById(GTM_HEAD_SCRIPT_ID);
-    if (headScript && headScript.parentNode) {
-      headScript.parentNode.removeChild(headScript);
+    var legacyBodySnippet = document.getElementById("labGtmBodySnippet");
+    if (legacyBodySnippet && legacyBodySnippet.parentNode) {
+      legacyBodySnippet.parentNode.removeChild(legacyBodySnippet);
     }
 
     window.__LAB_GTM_HEAD_INJECTED = false;
     window.__LAB_GTM_BODY_INJECTED = false;
   }
 
-  function validateAndParseGtmSnippet(rawSnippet) {
-    var raw = String(rawSnippet || "").trim();
-    if (!raw) {
-      throw new Error("GTM 스니펫을 입력하세요.");
+  function validateAndParseGtmSnippet(rawHeadSnippet, rawBodySnippet) {
+    var headSnippet = normalizeSnippet(rawHeadSnippet);
+    var bodySnippet = normalizeSnippet(rawBodySnippet);
+
+    if (!headSnippet) {
+      throw new Error("head ???? ?????.");
+    }
+    if (headSnippet.indexOf("googletagmanager.com") === -1) {
+      throw new Error("head ????? googletagmanager.com ???? ?? ? ????.");
     }
 
-    if (raw.indexOf("googletagmanager.com/gtm.js") === -1) {
-      throw new Error("head 스니펫에서 googletagmanager.com/gtm.js를 찾을 수 없습니다.");
+    var headIds = extractContainerIds(headSnippet);
+    if (headIds.length !== 1) {
+      throw new Error("head ????? GTM ???? ID? 1?? ????? ???.");
     }
-    if (raw.indexOf("googletagmanager.com/ns.html") === -1) {
-      throw new Error("body 스니펫에서 googletagmanager.com/ns.html을 찾을 수 없습니다.");
-    }
+    var containerId = headIds[0];
 
-    var ids = raw.match(/GTM-[A-Z0-9]+/gi) || [];
-    var uniqueIds = [];
-    for (var i = 0; i < ids.length; i += 1) {
-      var normalizedId = String(ids[i]).toUpperCase();
-      if (uniqueIds.indexOf(normalizedId) === -1) {
-        uniqueIds.push(normalizedId);
+    var headScriptSrcs = extractAttributeUrls(headSnippet, "script", "src");
+    for (var i = 0; i < headScriptSrcs.length; i += 1) {
+      if (!isAllowedGtmScriptSrc(headScriptSrcs[i])) {
+        throw new Error("???? ?? head script src: " + headScriptSrcs[i]);
       }
     }
 
-    if (uniqueIds.length !== 1) {
-      throw new Error("GTM 컨테이너 ID는 1개만 포함되어야 합니다.");
-    }
-    var containerId = uniqueIds[0];
-
-    var scriptSrcs = extractAttributeUrls(raw, "script", "src");
-    for (var s = 0; s < scriptSrcs.length; s += 1) {
-      if (!isAllowedGtmScriptSrc(scriptSrcs[s])) {
-        throw new Error("GTM 외 script src는 허용되지 않습니다: " + scriptSrcs[s]);
+    var headIframeSrcs = extractAttributeUrls(headSnippet, "iframe", "src");
+    for (var j = 0; j < headIframeSrcs.length; j += 1) {
+      if (!isAllowedGtmIframeSrc(headIframeSrcs[j])) {
+        throw new Error("???? ?? head iframe src: " + headIframeSrcs[j]);
       }
     }
 
-    var iframeSrcs = extractAttributeUrls(raw, "iframe", "src");
-    for (var f = 0; f < iframeSrcs.length; f += 1) {
-      if (!isAllowedGtmIframeSrc(iframeSrcs[f])) {
-        throw new Error("GTM 외 iframe src는 허용되지 않습니다: " + iframeSrcs[f]);
+    if (bodySnippet) {
+      if (bodySnippet.indexOf("googletagmanager.com/ns.html") === -1) {
+        throw new Error("body ???? googletagmanager.com/ns.html ????? ???.");
       }
-    }
 
-    var explicitScriptSrc = scriptSrcs.length ? scriptSrcs[0] : "";
-    var explicitIframeSrc = iframeSrcs.length ? iframeSrcs[0] : "";
-    var scriptIdFromSrc = explicitScriptSrc ? extractContainerIdFromUrl(explicitScriptSrc) : null;
-    var iframeIdFromSrc = explicitIframeSrc ? extractContainerIdFromUrl(explicitIframeSrc) : null;
+      var bodyIds = extractContainerIds(bodySnippet);
+      if (bodyIds.length > 1) {
+        throw new Error("body ????? ??? GTM ID? ???? ???.");
+      }
+      if (bodyIds.length === 1 && bodyIds[0] !== containerId) {
+        throw new Error("head/body ???? GTM ID? ?? ????.");
+      }
 
-    if (scriptIdFromSrc && scriptIdFromSrc !== containerId) {
-      throw new Error("script src의 GTM ID와 스니펫 ID가 일치하지 않습니다.");
-    }
-    if (iframeIdFromSrc && iframeIdFromSrc !== containerId) {
-      throw new Error("iframe src의 GTM ID와 스니펫 ID가 일치하지 않습니다.");
-    }
+      var bodyScriptSrcs = extractAttributeUrls(bodySnippet, "script", "src");
+      for (var k = 0; k < bodyScriptSrcs.length; k += 1) {
+        if (!isAllowedGtmScriptSrc(bodyScriptSrcs[k])) {
+          throw new Error("???? ?? body script src: " + bodyScriptSrcs[k]);
+        }
+      }
 
-    var headScriptSrc = explicitScriptSrc || ("https://www.googletagmanager.com/gtm.js?id=" + encodeURIComponent(containerId));
-    var bodyIframeSrc = explicitIframeSrc || ("https://www.googletagmanager.com/ns.html?id=" + encodeURIComponent(containerId));
-
-    if (!isAllowedGtmScriptSrc(headScriptSrc)) {
-      throw new Error("head script URL이 허용 형식이 아닙니다.");
-    }
-    if (!isAllowedGtmIframeSrc(bodyIframeSrc)) {
-      throw new Error("body iframe URL이 허용 형식이 아닙니다.");
+      var bodyIframeSrcs = extractAttributeUrls(bodySnippet, "iframe", "src");
+      for (var m = 0; m < bodyIframeSrcs.length; m += 1) {
+        if (!isAllowedGtmIframeSrc(bodyIframeSrcs[m])) {
+          throw new Error("???? ?? body iframe src: " + bodyIframeSrcs[m]);
+        }
+      }
     }
 
     return {
       container_id: containerId,
-      head_script_src: normalizeUrl(headScriptSrc),
-      body_iframe_src: normalizeUrl(bodyIframeSrc),
-      raw_snippet: raw,
+      head_snippet: headSnippet,
+      body_snippet: bodySnippet,
+      raw_head_snippet: headSnippet,
+      raw_body_snippet: bodySnippet,
       saved_at: new Date().toISOString()
     };
   }
 
   function applyGtmBodySnippet() {
     var config = getGtmConfig();
-    var existing = document.getElementById(GTM_BODY_SNIPPET_ID);
+    removeInjectedNodes(GTM_BODY_MARKER_ATTR);
 
-    if (!config) {
-      if (existing && existing.parentNode) {
-        existing.parentNode.removeChild(existing);
-      }
-      return false;
-    }
+    if (!config) return false;
+    if (!normalizeSnippet(config.body_snippet)) return false;
 
-    if (existing) {
-      return true;
-    }
-
-    if (document.querySelector('noscript iframe[src*="googletagmanager.com/ns.html"]')) {
+    if (document.querySelector('noscript iframe[src*="googletagmanager.com/ns.html"]') &&
+      !document.querySelector("[" + GTM_BODY_MARKER_ATTR + "]")) {
       window.__LAB_GTM_BODY_INJECTED = true;
       return true;
     }
 
     var body = document.body;
     if (!body) return false;
-
-    var noscript = document.createElement("noscript");
-    noscript.id = GTM_BODY_SNIPPET_ID;
-
-    var iframe = document.createElement("iframe");
-    iframe.src = config.body_iframe_src;
-    iframe.height = "0";
-    iframe.width = "0";
-    iframe.style.display = "none";
-    iframe.style.visibility = "hidden";
-    noscript.appendChild(iframe);
-
-    if (body.firstChild) {
-      body.insertBefore(noscript, body.firstChild);
-    } else {
-      body.appendChild(noscript);
-    }
-    window.__LAB_GTM_BODY_INJECTED = true;
-    return true;
+    var injected = injectHtmlSnippet(body, config.body_snippet, GTM_BODY_MARKER_ATTR, true);
+    window.__LAB_GTM_BODY_INJECTED = injected;
+    return injected;
   }
 
   function getMode() {

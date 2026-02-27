@@ -3,7 +3,8 @@
 ## 1) GTM Setup 페이지에서 1회 설정
 
 - `gtm-setup.html` 접속
-- 공식 GTM 전체 스니펫(head + noscript) 붙여넣기
+- Head 스니펫 입력 (필수, `</head>` 직전 그대로 주입)
+- Body 스니펫 입력 (선택)
 - `저장/적용` 클릭
 - 저장 후 모든 페이지에서 자동 주입
 
